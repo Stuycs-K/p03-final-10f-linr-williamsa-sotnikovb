@@ -2,7 +2,7 @@
 # Battleship Game
 ### USS Victory
 
-Ricky Lin (rickyl49@nycstudents.net), Armistead Williams (armisteadw@nycstudents.net), Bogdan Sotnikov
+Ricky Lin (rickyl49@nycstudents.net), Armistead Williams (armisteadw@nycstudents.net), Bogdan Sotnikov (bogdans2789@nycstudents.net)
        
 ### Project Description:
 
