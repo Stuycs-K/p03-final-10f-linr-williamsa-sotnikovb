@@ -6,7 +6,7 @@ Ricky Lin, Armistead Williams, Bogdan Sotnikov
        
 # Intentions:
 
-We are going to create a battleship board game using networking and semaphores and if we have time, we'll try to have it send html files to see the board. 
+We are going to create a battleship board game using networking and semaphores.
     
 # Intended usage:
 
