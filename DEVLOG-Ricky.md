@@ -2,10 +2,7 @@
 
 This document must be updated daily every time you finish a work session.
 
-## Amy Smith  (CHANGE THIS!!!!! Also change the file name!)
+## Ricky Lin
 
-### 2024-01-02 - Brief description
-Expanded description including how much time was spent on task.
-
-### 2024-01-03 - Brief description
-Expanded description including how much time was spent on task.
+### 2025-01-06 - Added the proposal, this devlog, and filled out the readme
+We spent the whole period deciding our group and also organizing our repo, filling out what we want to do on the files, and giving a way to contact each other after school. 
