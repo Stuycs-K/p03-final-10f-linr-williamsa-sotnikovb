@@ -23,5 +23,5 @@ Our project would be a battle ship board game. There would first be a setup menu
     
 # Intended pacing:
 
-- Basic functionality of the game by Friday in class.
+- Basic functionality of the game by Monday in class.
 - Make everything run together by Wednesday and fix any bugs and stuff by the deadline. 
