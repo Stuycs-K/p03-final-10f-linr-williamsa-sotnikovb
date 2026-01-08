@@ -1,9 +1,20 @@
-#include "networking.h"
+#include "CommDefs.h"
 
 void clientLogic(int server_socket){
-  printf("Welcome to Battleship 3000\nPlease enter your username\n");
-  char buffer[256];
-  fgets()
+  printf("Welcome to Battleship 3000\n");
+  char loggedin = 0;
+  while(!loggedin)
+  {
+    printf("Please enter your username\n");
+    char uname[256];
+    char upwd[256];
+    if (fgets(uname, 256, stdin))
+    {
+      printf("Please enter your password\n");
+      if (fgets(upwd, 256, stdin))
+        if ()
+    }
+  }
   while (1)
   {
 
