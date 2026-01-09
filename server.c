@@ -7,7 +7,7 @@
 void talkToCli(int client_socket)
 {
   int cliSig = -1;
-  recv(client_socket, cliSig, sizeof(int), 0);
+  recv(client_socket, &cliSig, sizeof(int), 0);
   if (cliSig==REQLGN)
   {
     sqlite3* DB;
@@ -15,7 +15,7 @@ void talkToCli(int client_socket)
     exit = sqlite3_open("example.db", &DB);
 
     int sendSig = ACCLGN;                         //send a signal accepting login to client
-    send(client_socket, sendSig, sizeof(int), 0);
+    send(client_socket, &sendSig, sizeof(int), 0);
     char unamebuff[256];
     char upwdbuff[256];
     recv(client_socket, unamebuff, 256, 0);       //await username and pwd input
@@ -27,14 +27,14 @@ void talkToCli(int client_socket)
     }
     sqlite3_close(DB);
   }
-  else if (clisig==REQRGST)
+  else if (cliSig==REQRGST)
   {
     sqlite3* DB;
     int exit = 0;
     exit = sqlite3_open("example.db", &DB);
 
     int sendSig = ACCRGST;
-    send(client_socket, sendSig, sizeof(int), 0);
+    send(client_socket, &sendSig, sizeof(int), 0);
     char unamebuff[256];
     char upwdbuff[256];
     recv(client_socket, unamebuff, 256, 0);
@@ -44,7 +44,7 @@ void talkToCli(int client_socket)
     {                                             //inserts input values into database
       sqlite3_exec(DB, "CREATE TABLE IF NOT EXISTS users(username TEXT, password TEXT, wins INTEGER)", NULL, 0, NULL);
       char command[256];
-      sprintf(command, "INSERT INTO users VALUES('%s', '%s', 0)", unamebuff, upwdbuff);
+      sprintf(command, "INSERT INTO users VALUES('%256s', '%256s', 0)", unamebuff, upwdbuff);
       sqlite3_exec(DB, command, NULL, NULL, NULL);
     }
     sqlite3_close(DB);

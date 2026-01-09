@@ -14,9 +14,9 @@ void clientLogic(int server_socket){
       if (fgets(upwd, 256, stdin))
       {
         int sendSig = REQRGST;
-        send(server_socket, sendSig, sizeof(int), 0);
+        send(server_socket, &sendSig, sizeof(int), 0);
         int recSig = -1;
-        recv(server_socket, recSig, sizeof(int), 0);
+        recv(server_socket, &recSig, sizeof(int), 0);
         if (recSig==ACCRGST)
         {
           send(server_socket, uname, 256, 0);
