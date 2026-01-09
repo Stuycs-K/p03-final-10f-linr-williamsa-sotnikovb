@@ -12,12 +12,19 @@ void clientLogic(int server_socket){
     {
       printf("Please enter your password\n");
       if (fgets(upwd, 256, stdin))
-        if ()
+      {
+        int sendSig = REQRGST;
+        send(server_socket, sendSig, sizeof(int), 0);
+        int recSig = -1;
+        recv(server_socket, recSig, sizeof(int), 0);
+        if (recSig==ACCRGST)
+        {
+          send(server_socket, uname, 256, 0);
+          send(server_socket, upwd, 256, 0);
+          loggedin = 1;
+        }
+      }
     }
-  }
-  while (1)
-  {
-
   }
 }
 

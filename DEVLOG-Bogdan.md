@@ -6,3 +6,6 @@ This document must be updated daily every time you finish a work session.
 
 ### 2024-01-07
 - Brainstormed networking and basic setup.
+
+### 2024-01-08
+- Started work on logging in.
