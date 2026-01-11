@@ -1,49 +1,59 @@
 #include "networking.h"
-#include& lt; stdio.h & gt;
-#include& lt; string.h & gt; //strlen
-#include& lt; stdlib.h & gt;
-#include& lt; errno.h & gt;
-#include& lt; unistd.h & gt; //close
-#include& lt; arpa / inet.h & gt; //close
-#include& lt; sys / types.h & gt;
-#include& lt; sys / socket.h & gt;
-#include& lt; netinet / in.h & gt;
-#include& lt; sys / time.h & gt; //FD_SET, FD_ISSET, FD_ZERO macros
 #define TRUE 1
 #define FALSE 0
 #define PORT 6767
-
+#define MAX_CLIENTS FD_SETSIZE
 void matchserverlogic(int client1, int client2){
   while(1){
-    #logictba
+    //logictba
   }
 }
 
 /*
 We will have a single main server that manages incoming connections, and manages match requests.
-We listen on an open, "master_socket", for new connections and listen on every other socket for match requests. This is achieved using the select function.
+We listen on an open, "master_socket", for new connections and listen on every other socket for match requests. This is achieved using the select function. - note that select is blocking
 When a client connects we add them to our select list and continue.
 When a client requests to play another client on the list, we must write to the other client socket, requiring us to have both reading and writing ports open.
 */
+
+
 int main(int argc, char *argv[] ) {
   fd_set master;    // master file descriptor list
   fd_set read_fds;  // temp file descriptor list for select()
   int fdmax;        // maximum file descriptor number
-
+  //struct timeval tv;
+  //tv.tv_sec = 2; // select function will continue every 2 sec
   int listener = server_setup();
   FD_ZERO(&master);
   FD_ZERO(&read_fds);
-  FD_SET
   int client_socket;
   char buffer[100];
 
   FD_ZERO(&read_fds);
   //assume this functuion correcly sets up a listening socket
   listen_socket = server_setup();
-
   //add listen_socket and stdin to the set
   FD_SET(listen_socket, &master);
   fdmax = listen_socket;
+
+  while(0){ //main loop
+    read_fds = master;
+    if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
+      perror("select");
+      exit(16);
+    }
+    for(int i = 0; i <= fdmax; i++){
+      if(FD_ISSET(i, &read_fds)) {
+        if(i == listener)
+          handle_new_connection(i, &master, &fdmax);
+        else
+          handle_client_data(i, listener, &master, fdmax);
+      }
+    }
+  }
+}
+
+
   //add stdin's file desciptor
   //FD_SET(STDIN_FILENO, &read_fds);
 

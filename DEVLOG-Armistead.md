@@ -14,3 +14,4 @@ Figured out the exact systems-level interactions of our clients and servers. Too
 Began working on project, making a new server that can listening on multiple sockets simultaneously.
 
 ### 2025-01-09 - Worked with select function
+Figured out functionalities, specifically if we intend to have select monitor both a read set and write set at same time.
