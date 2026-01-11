@@ -1,5 +1,7 @@
 #include "networking.h"
-
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 void err(int i, char*message){
   if(i < 0){

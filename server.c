@@ -1,9 +1,63 @@
+
+#include "CommDefs.h"
 #include "networking.h"
 #define TRUE 1
 #define FALSE 0
 #define PORT 6767
 #define MAX_CLIENTS FD_SETSIZE
+#include <string.h>
+#include <errno.h>
 
+void talkToCli(int client_socket)
+{
+  int cliSig = -1;
+  recv(client_socket, &cliSig, sizeof(int), 0);
+  if (cliSig==REQLGN)
+  {
+    sqlite3* DB;
+    int exit = 0;
+    exit = sqlite3_open("example.db", &DB);
+
+    int sendSig = ACCLGN;                         //send a signal accepting login to client
+    send(client_socket, &sendSig, sizeof(int), 0);
+    char unamebuff[256];
+    char upwdbuff[256];
+    recv(client_socket, unamebuff, 256, 0);       //await username and pwd input
+    recv(client_socket, upwdbuff, 256, 0);
+
+    if (!exit)
+    {
+      sqlite3_exec(DB, "CREATE TABLE IF NOT EXISTS users(username TEXT, password TEXT, wins INTEGER)", NULL, 0, NULL);
+    }
+    sqlite3_close(DB);
+  }
+  else if (cliSig==REQRGST)
+  {
+    sqlite3* DB;
+    int exit = 0;
+    exit = sqlite3_open("example.db", &DB);
+
+    int sendSig = ACCRGST;
+    send(client_socket, &sendSig, sizeof(int), 0);
+    char unamebuff[256];
+    char upwdbuff[256];
+    recv(client_socket, unamebuff, 256, 0);
+    recv(client_socket, upwdbuff, 256, 0);
+
+    if (!exit)
+    {                                             //inserts input values into database
+      sqlite3_exec(DB, "CREATE TABLE IF NOT EXISTS users(username TEXT, password TEXT, wins INTEGER)", NULL, 0, NULL);
+      char command[548];
+      sprintf(command, "INSERT INTO users VALUES('%256s', '%256s', 0)", unamebuff, upwdbuff);
+      sqlite3_exec(DB, command, NULL, NULL, NULL);
+    }
+    sqlite3_close(DB);
+  }
+}
+
+void subserver_logic(int client_socket){
+  talkToCli(client_socket);
+}
 
 /*
 We will have a single main server that manages incoming connections, and manages match requests.

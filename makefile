@@ -1,16 +1,13 @@
-.PHONY: client server clean
-compile: client.o networking.o server.o
- @gcc -o client client.o networking.o
- @gcc -o server server.o networking.o
-client.o: client.c networking.h
- @gcc -Wall -c client.c
-
-server.o: server.c networking.h
- @gcc -Wall -c server.c
-
+.PHONY: clean compile run
+compile server client: networking.o server.o client.o networking.h CommDefs.h sqlite3.h
+	@gcc -o server server.o networking.o
+	@gcc -o client client.o networking.o
 networking.o: networking.c networking.h
- @gcc -Wall -c networking.c
-
+	@gcc -c networking.c
+server.o: server.c networking.h CommDefs.h sqlite3.h
+	@gcc -c server.c
+client.o: client.c networking.h CommDefs.h sqlite3.h
+	@gcc -c client.c
 clean:
- rm -f *.o client server
- rm -f *~
+	@rm -f *.o networking server client
+ 	@rm -f *~
