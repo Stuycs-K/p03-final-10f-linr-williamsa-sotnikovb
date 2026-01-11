@@ -3,11 +3,7 @@
 #define FALSE 0
 #define PORT 6767
 #define MAX_CLIENTS FD_SETSIZE
-void matchserverlogic(int client1, int client2){
-  while(1){
-    //logictba
-  }
-}
+
 
 /*
 We will have a single main server that manages incoming connections, and manages match requests.
@@ -16,7 +12,7 @@ When a client connects we add them to our select list and continue.
 When a client requests to play another client on the list, we must write to the other client socket, requiring us to have both reading and writing ports open.
 */
 
-
+//main server code
 int main(int argc, char *argv[] ) {
   fd_set master;    // master file descriptor list
   fd_set read_fds;  // temp file descriptor list for select()
@@ -90,38 +86,24 @@ void handle_client_data(int s, int listener, fd_set *master, int fdmax){
   }
 }
 
-  //add stdin's file desciptor
-  //FD_SET(STDIN_FILENO, &read_fds);
-
-  //listen socket is larger than STDIN_FILENO, so listen_socket+1 is the 1 larger than max fd value.
-  int i = select(listen_socket+1, &read_fds, NULL, NULL, NULL);
-
-  //if standard in, use fgets
-  if (FD_ISSET(STDIN_FILENO, &read_fds)) {
-    fgets(buffer, sizeof(buffer), stdin);
-  }
-  //if socket, accept the connection
-  //assume this function works correctly
-  if (FD_ISSET(listen_socket, &read_fds)) {
-    client_socket = server_connect(listen_socket);
-  }
-while(1){
-  int client_socket = server_tcp_handshake(listen_socket);
-  fd_set desciptors;
-  FD_ZERO( &desciptors );
-
-
-
-
-
-  int child = fork();
-  if(!child){
-    close(listen_socket);
-    subserver_logic(client_socket);
-    close(client_socket);
-    exit(0);
-  }
-  close(client_socket);
-}
-
+//straight BEEJ's code for converting a socket into an IP address string
+//this is just - for the moment at least - for being able to bug test and tell who's who
+const char *inet_ntop2(void *addr, char *buf, size_t size){
+  struct sockaddr_storage *sas = addr;
+  struct sockaddr_in *sa4;
+  struct sockaddr_in6 *sa6;
+  void *src;
+  switch (sas->ss_family) { //whats a switch? fancy if else?
+    case AF_INET:
+      sa4 = addr;
+      src = &(sa4->sin_addr);
+      break;
+    case AF_INET6:
+      sa6 = addr;
+      src = &(sa6->sin6_addr);
+      break;
+    default:
+      return NULL;
+    }
+    return inet_ntop(sas->ss_family, src, buf, size);
 }

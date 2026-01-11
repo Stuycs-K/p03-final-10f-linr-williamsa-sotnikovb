@@ -15,3 +15,6 @@ Began working on project, making a new server that can listening on multiple soc
 
 ### 2025-01-09 - Worked with select function
 Figured out functionalities, specifically if we intend to have select monitor both a read set and write set at same time.
+
+### 2025-01-11 - Made server skeleton
+Made skeleton for main server, match server and specifics of handling requests not made yet, see comments
