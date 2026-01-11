@@ -10,3 +10,4 @@ client.o: client.c networking.h CommDefs.h sqlite3.h
 	@gcc -c client.c
 clean:
 	@rm -f *.o networking server client
+ 	@rm -f *~
