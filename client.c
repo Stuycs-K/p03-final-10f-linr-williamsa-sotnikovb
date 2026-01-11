@@ -1,4 +1,5 @@
 #include "CommDefs.h"
+#include "networking.h"
 
 void clientLogic(int server_socket){
   printf("Welcome to Battleship 3000\n");

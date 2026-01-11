@@ -43,7 +43,7 @@ void talkToCli(int client_socket)
     if (!exit)
     {                                             //inserts input values into database
       sqlite3_exec(DB, "CREATE TABLE IF NOT EXISTS users(username TEXT, password TEXT, wins INTEGER)", NULL, 0, NULL);
-      char command[256];
+      char command[548];
       sprintf(command, "INSERT INTO users VALUES('%256s', '%256s', 0)", unamebuff, upwdbuff);
       sqlite3_exec(DB, command, NULL, NULL, NULL);
     }
