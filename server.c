@@ -53,6 +53,42 @@ int main(int argc, char *argv[] ) {
   }
 }
 
+//Combined BEEJ's Code w/ lab-16 server_tcp_handshake implementation
+void handle_new_connection(int listener, fd_set *master, int *fdmax){
+  int newfd = server_tcp_handshake(listener);
+  if (newfd == -1) {
+    perror("accept");
+  }
+  else{
+    FD_SET(newfd, master); // add to master set
+    if (newfd > *fdmax) {  // keep track of the max
+    *fdmax = newfd;
+    }
+    printf("selectserver: new connection from %s on socket %d\n", inet_ntop2(&remoteaddr, remoteIP, sizeof remoteIP), newfd);
+  }
+}
+
+void handle_client_data(int s, int listener, fd_set *master, int fdmax){
+  char buf[256];    // buffer for client data
+  int nbytes;
+  // handle data from a client
+  if((nbytes = recv(s, buf, sizeof buf, 0)) <= 0) { // got error or connection closed by client
+    if(nbytes == 0) { // connection closed
+      printf("selectserver: socket %d hung up\n", s);
+    }
+    else{
+      perror("recv");
+    }
+    close(s); // bye!
+    FD_CLR(s, master); // remove from master set
+  }
+  else{
+        // we got some data from a client
+        // to implement how we handle this data
+        // - if its a name of another client then we send request to that other client, should also send a "request sent" to first client
+        // - if its an acceptance we should make the match server and remove both clients from our "online" list
+  }
+}
 
   //add stdin's file desciptor
   //FD_SET(STDIN_FILENO, &read_fds);
