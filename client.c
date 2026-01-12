@@ -6,23 +6,31 @@ void clientLogic(int server_socket){
   char loggedin = 0;
   while(!loggedin)
   {
-    printf("Please enter your username\n");
-    char uname[256];
-    char upwd[256];
-    if (fgets(uname, 256, stdin))
+    char buff[256];
+    printf("Enter 1 for login. Enter 2 for registration.");
+    if (fgets(buff, 256, stdin))
     {
-      printf("Please enter your password\n");
-      if (fgets(upwd, 256, stdin))
+      if (!strcmp(buff, "2"))
       {
-        int sendSig = REQRGST;
-        send(server_socket, &sendSig, sizeof(int), 0);
-        int recSig = -1;
-        recv(server_socket, &recSig, sizeof(int), 0);
-        if (recSig==ACCRGST)
+        printf("Please enter a username\n");
+        char uname[256];
+        char upwd[256];
+        if (fgets(uname, 256, stdin))
         {
-          send(server_socket, uname, 256, 0);
-          send(server_socket, upwd, 256, 0);
-          loggedin = 1;
+          printf("Please enter a password\n");
+          if (fgets(upwd, 256, stdin))
+          {
+            int sendSig = REQRGST;
+            send(server_socket, &sendSig, sizeof(int), 0);
+            int recSig = -1;
+            recv(server_socket, &recSig, sizeof(int), 0);
+            if (recSig==ACCRGST)
+            {
+              send(server_socket, uname, 256, 0);
+              send(server_socket, upwd, 256, 0);
+              loggedin = 1;
+            }
+          }
         }
       }
     }
