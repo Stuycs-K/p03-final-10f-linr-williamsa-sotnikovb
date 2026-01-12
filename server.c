@@ -19,6 +19,8 @@ void talkToCli(int client_socket)
     char upwdbuff[256];
     recv(client_socket, unamebuff, 256, 0);       //await username and pwd input
     recv(client_socket, upwdbuff, 256, 0);
+    struct usr * temp = searchDB(unamebuff, upwdbuff);
+    if (!temp)
   }
   else if (cliSig==REQRGST)
   {
@@ -28,11 +30,44 @@ void talkToCli(int client_socket)
     char upwdbuff[256];
     recv(client_socket, unamebuff, 256, 0);
     recv(client_socket, upwdbuff, 256, 0);
+    struct usr * newAcc = (struct usr *)calloc(1, sizeof(struct usr));
+    newAcc->name = unamebuff;
+    newAcc->pwd = upwdbuff;
+    appendDB(newAcc);
+    free(newAcc);
   }
 }
 
-void subserver_logic(int client_socket){
-  talkToCli(client_socket);
+int appendDB(struct usr * u);
+{
+  struct usr * temp = searchDB(u->name, u->pwd);
+  if (!temp)
+  {
+    int w_file = open("./userdata.ussv", O_WRONLY|O_APPEND, 0);
+    write(w_file, u, sizeof(u));
+  }
+  free(temp);
+  return -1;
+}
+
+struct usr * searchDB(char *unm, char *pwd)
+{
+  int r_file = open("./userdata.ussv", O_RDONLY, 0);
+  if (r_file == -1)
+  {
+    close(r_file);
+    return NULL;
+  }
+  struct usr * out = (struct usr *)calloc(1, sizeof(struct usr));
+  while (read(r_file, out, sizeof(struct usr)))
+  {
+    if (!strcmp(out->name, unm) && !strcmp(out->pwd, pwd))
+    {
+      close(r_file);
+      return out;
+  }
+  close(r_file);
+  return NULL;
 }
 
 /*

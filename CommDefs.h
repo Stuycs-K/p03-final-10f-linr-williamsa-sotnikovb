@@ -5,4 +5,6 @@
 #define ACCLGN 3
 #define REQRGST 4
 #define ACCRGST 5
+#define DENY 6;
+#define CNFRM 7;
 #endif
