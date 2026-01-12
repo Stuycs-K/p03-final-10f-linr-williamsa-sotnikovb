@@ -1,1 +1,109 @@
+#include "networking.h"
+#define TRUE 1
+#define FALSE 0
+#define PORT 6767
+#define MAX_CLIENTS FD_SETSIZE
 
+
+/*
+We will have a single main server that manages incoming connections, and manages match requests.
+We listen on an open, "master_socket", for new connections and listen on every other socket for match requests. This is achieved using the select function. - note that select is blocking
+When a client connects we add them to our select list and continue.
+When a client requests to play another client on the list, we must write to the other client socket, requiring us to have both reading and writing ports open.
+*/
+
+//main server code
+int main(int argc, char *argv[] ) {
+  fd_set master;    // master file descriptor list
+  fd_set read_fds;  // temp file descriptor list for select()
+  int fdmax;        // maximum file descriptor number
+  //struct timeval tv;
+  //tv.tv_sec = 2; // select function will continue every 2 sec
+  int listener = server_setup();
+  FD_ZERO(&master);
+  FD_ZERO(&read_fds);
+  int client_socket;
+  char buffer[100];
+
+  FD_ZERO(&read_fds);
+  //assume this functuion correcly sets up a listening socket
+  listen_socket = server_setup();
+  //add listen_socket and stdin to the set
+  FD_SET(listen_socket, &master);
+  fdmax = listen_socket;
+
+  while(0){ //main loop
+    read_fds = master;
+    if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
+      perror("select");
+      exit(16);
+    }
+    for(int i = 0; i <= fdmax; i++){
+      if(FD_ISSET(i, &read_fds)) {
+        if(i == listener)
+          handle_new_connection(i, &master, &fdmax);
+        else
+          handle_client_data(i, listener, &master, fdmax);
+      }
+    }
+  }
+}
+
+//Combined BEEJ's Code w/ lab-16 server_tcp_handshake implementation
+void handle_new_connection(int listener, fd_set *master, int *fdmax){
+  int newfd = server_tcp_handshake(listener);
+  if (newfd == -1) {
+    perror("accept");
+  }
+  else{
+    FD_SET(newfd, master); // add to master set
+    if (newfd > *fdmax) {  // keep track of the max
+    *fdmax = newfd;
+    }
+    printf("selectserver: new connection from %s on socket %d\n", inet_ntop2(&remoteaddr, remoteIP, sizeof remoteIP), newfd);
+  }
+}
+
+void handle_client_data(int s, int listener, fd_set *master, int fdmax){
+  char buf[256];    // buffer for client data
+  int nbytes;
+  // handle data from a client
+  if((nbytes = recv(s, buf, sizeof buf, 0)) <= 0) { // got error or connection closed by client
+    if(nbytes == 0) { // connection closed
+      printf("selectserver: socket %d hung up\n", s);
+    }
+    else{
+      perror("recv");
+    }
+    close(s); // bye!
+    FD_CLR(s, master); // remove from master set
+  }
+  else{
+        // we got some data from a client
+        // to implement how we handle this data
+        // - if its a name of another client then we send request to that other client, should also send a "request sent" to first client
+        // - if its an acceptance we should make the match server and remove both clients from our "online" list
+  }
+}
+
+//straight BEEJ's code for converting a socket into an IP address string
+//this is just - for the moment at least - for being able to bug test and tell who's who
+const char *inet_ntop2(void *addr, char *buf, size_t size){
+  struct sockaddr_storage *sas = addr;
+  struct sockaddr_in *sa4;
+  struct sockaddr_in6 *sa6;
+  void *src;
+  switch (sas->ss_family) { //whats a switch? fancy if else?
+    case AF_INET:
+      sa4 = addr;
+      src = &(sa4->sin_addr);
+      break;
+    case AF_INET6:
+      sa6 = addr;
+      src = &(sa6->sin6_addr);
+      break;
+    default:
+      return NULL;
+    }
+    return inet_ntop(sas->ss_family, src, buf, size);
+}
