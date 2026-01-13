@@ -7,10 +7,6 @@
 #include <string.h>
 #include <errno.h>
 
-void talkToCli(int client_socket)
-{
-
-}
 
 /*
 We will have a single main server that manages incoming connections, and manages match requests.
@@ -58,7 +54,7 @@ int appendDB(struct usr * u)
     int w_file = open("./userdata.ussv", O_WRONLY|O_APPEND, 0);
     write(w_file, u, sizeof(u));
   }
-  free(temp);
+  else free(temp);
   return -1;
 }
 //Combined BEEJ's Code w/ lab-16 server_tcp_handshake implementation
