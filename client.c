@@ -38,6 +38,8 @@ void printBoard(int myBoard[3][3], int oppBoard[3][3], int x, int y){
 void clientLogic(int server_socket){
   while (1){
   char buffer[256];
+  int x;
+  int y;
   printf("Insert the coordinates you wish to check in x y form: ");
   char * s = fgets(buffer, sizeof(buffer), stdin);
   if (s == NULL){
@@ -48,9 +50,23 @@ void clientLogic(int server_socket){
   if (bytes == -1){
     err(server_socket, "write failed");
   }
-
+  int board[2][3][3];
+  bytes = read(server_socket, buffer, sizeof(buffer));
+  if (bytes == -1){
+    err(server_socket, "read failed");
   }
-  return;
+  sscanf(buffer, "%d %d", &x, &y);
+  bytes = read(server_socket, board, sizeof(board));
+  if (bytes == -1){
+    err(server_socket, "read failed");
+  }
+  int myBoard[3][3];
+  int oppBoard[3][3];
+  memcpy(myBoard, board[0], sizeof(board[0]));
+  memcpy(oppBoard, board[1], sizeof(board[1]));
+  printBoard(myBoard, oppBoard, x, y );
+  }
+
 }
 
 int main(int argc, char *argv[] ) {
