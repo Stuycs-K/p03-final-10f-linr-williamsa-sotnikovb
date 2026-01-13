@@ -54,6 +54,7 @@ void handle_new_connection(int listener, fd_set *master, int *fdmax){
     *fdmax = newfd;
     }
   }
+  printf("server connected");
 }
 
 void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
@@ -76,6 +77,7 @@ void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
     }
   }
   else{
+    printf("server receives %s", buffer);
     buf[nbytes] = '\0';
         // we got some data from a client
         // to implement how we handle this data
