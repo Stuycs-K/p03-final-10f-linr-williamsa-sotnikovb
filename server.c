@@ -2,6 +2,7 @@
 #define TRUE 1
 #define FALSE 0
 #define MAX_CLIENTS FD_SETSIZE
+#define MAX_NUMBOARDS 10
 
 
 /*
@@ -18,15 +19,17 @@ int main(int argc, char *argv[] ) {
   int fdmax;        // maximum file descriptor number
   //struct timeval tv;
   //tv.tv_sec = 2; // select function will continue every 2 sec
+
   FD_ZERO(&master);
   FD_ZERO(&read_fds);
-  //assume this functuion correcly sets up a listening socket
   int listen_socket = server_setup();
+  struct board * boardarray[MAX_NUMBOARDS]; // may need to make sure this is null? and initialize?
   //add listen_socket to the set
   FD_SET(listen_socket, &master);
   fdmax = listen_socket;
   while(1){ //main loop
     read_fds = master;
+    struct board * newboard = NULL;
     if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
       perror("select");
       exit(16);
@@ -36,8 +39,19 @@ int main(int argc, char *argv[] ) {
         if(i == listen_socket)
           handle_new_connection(i, &master, &fdmax);
         else
-          handle_client_data(i, listen_socket, &master, &fdmax);
+          newboard = handle_client_data(i, listen_socket, &master, &fdmax);
       }
+    }
+    if(newboard != NULL){
+      for(int j = 0; j < MAX_NUMBOARDS; j++){
+        if(boardarray[j] != NULL){
+          boardarray[j] = newboard;
+          break;
+        }
+      }
+    }
+    for(int k = 0; k < MAX_NUMBOARDS; k++){
+      wait(boardarray[j]->)
     }
   }
 }
@@ -56,7 +70,7 @@ void handle_new_connection(int listener, fd_set *master, int *fdmax){
   }
 }
 
-void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
+struct * board handle_client_data(int s, int listener, fd_set *master, int *fdmax){
   char buf[256];    // buffer for client data
   int nbytes;
   // handle data from a client
@@ -77,12 +91,31 @@ void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
   }
   else{
     buf[nbytes] = '\0';
+    if(/*conditions tba*/){
+      return subserverlogic(socket1, socket2);
+    }
         // we got some data from a client
         // to implement how we handle this data
         // - if its a name of another client then we send request to that other client, should also send a "request sent" to first client
         // - if its an acceptance we should make the match server and remove both clients from our "online" list
   }
 }
+
+struct * board subserverlogic(int socket1, int socket2){
+  int subpid = fork();
+  if(subpid == 0){
+    struct board * newboard = malloc(sizeof(board));
+    newboard->pid = getpid();
+    newboard->socket1 = socket1;
+    newboard->socket2 = socket2;
+  }
+  else{
+    return subpid;
+  }
+}
+
+
+
 
 /*straight BEEJ's code for converting a socket into an IP address string
 //this is just - for the moment at least - for being able to bug test and tell who's who
