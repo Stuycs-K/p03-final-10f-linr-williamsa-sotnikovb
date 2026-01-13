@@ -36,6 +36,20 @@ void printBoard(int myBoard[3][3], int oppBoard[3][3], int x, int y){
 }
 
 void clientLogic(int server_socket){
+  while (1){
+  char buffer[256];
+  printf("Insert the coordinates you wish to check in x y form: ");
+  char * s = fgets(buffer, sizeof(buffer), stdin);
+  if (s == NULL){
+    printf("Client exits because of CTRL-D\n");
+    break;
+  }
+  int bytes = write(server_socket, buffer, 256);
+  if (bytes == -1){
+    err(server_socket, "write failed");
+  }
+
+  }
   return;
 }
 
