@@ -9,43 +9,7 @@
 
 void talkToCli(int client_socket)
 {
-  int cliSig = -1;
-  recv(client_socket, &cliSig, sizeof(int), 0);
-  if (cliSig==REQLGN)
-  {
-    int sendSig = ACCLGN;                         //send a signal accepting login to client
-    send(client_socket, &sendSig, sizeof(int), 0);
-    char unamebuff[256];
-    char upwdbuff[256];
-    recv(client_socket, unamebuff, 256, 0);       //await username and pwd input
-    recv(client_socket, upwdbuff, 256, 0);
-    struct usr * temp = searchDB(unamebuff, upwdbuff);
-    if (!temp)
-    {
-      sendSig = DENY;
-      send(client_socket, &sendSig, sizeof(int), 0);
-    }
-    else
-    {
-      sendSig = CNFRM;
-      send(client_socket, &sendSig, sizeof(int), 0);
-      send(client_socket, temp, sizeof(struct usr), 0);
-    }
-  }
-  else if (cliSig==REQRGST)
-  {
-    int sendSig = ACCRGST;
-    send(client_socket, &sendSig, sizeof(int), 0);
-    char unamebuff[256];
-    char upwdbuff[256];
-    recv(client_socket, unamebuff, 256, 0);
-    recv(client_socket, upwdbuff, 256, 0);
-    struct usr * newAcc = (struct usr *)calloc(1, sizeof(struct usr));
-    newAcc->name = unamebuff;
-    newAcc->pwd = upwdbuff;
-    appendDB(newAcc);
-    free(newAcc);
-  }
+
 }
 
 /*
@@ -82,9 +46,11 @@ int main(int argc, char *argv[] ) {
         else
           handle_client_data(i, listen_socket, &master, &fdmax);
       }
+    }
+  }
+}
 
-
-int appendDB(struct usr * u);
+int appendDB(struct usr * u)
 {
   struct usr * temp = searchDB(u->name, u->pwd);
   if (!temp)
@@ -106,6 +72,8 @@ void handle_new_connection(int listener, fd_set *master, int *fdmax){
     if (newfd > *fdmax) {  // keep track of the max
     *fdmax = newfd;
     }
+  }
+}
 
 
 struct usr * searchDB(char *unm, char *pwd)
@@ -123,16 +91,17 @@ struct usr * searchDB(char *unm, char *pwd)
     {
       close(r_file);
       return out;
+    }
   }
   close(r_file);
   return NULL;
 }
 
 void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
-  char buf[256];    // buffer for client data
+  int cliSig = -1;
   int nbytes;
   // handle data from a client
-  if((nbytes = recv(s, buf, sizeof buf, 0)) <= 0){ // got error or connection closed by client
+  if((nbytes = recv(s, &cliSig, sizeof cliSig, 0)) <= 0){ // got error or connection closed by client
     if(nbytes == 0){ // connection closed
       printf("selectserver: socket %d hung up\n", s);
     }
@@ -148,11 +117,45 @@ void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
     }
   }
   else{
-    buf[nbytes] = '\0';
         // we got some data from a client
         // to implement how we handle this data
         // - if its a name of another client then we send request to that other client, should also send a "request sent" to first client
         // - if its an acceptance we should make the match server and remove both clients from our "online" list
+    if (cliSig==REQLGN)
+    {
+      int sendSig = ACCLGN;                         //send a signal accepting login to client
+      send(s, &sendSig, sizeof(int), 0);
+      char unamebuff[256];
+      char upwdbuff[256];
+      recv(s, unamebuff, 256, 0);       //await username and pwd input
+      recv(s, upwdbuff, 256, 0);
+      struct usr * temp = searchDB(unamebuff, upwdbuff);
+      if (!temp)
+      {
+        sendSig = DENY;
+        send(s, &sendSig, sizeof(int), 0);
+      }
+      else
+      {
+        sendSig = CNFRM;
+        send(s, &sendSig, sizeof(int), 0);
+        send(s, temp, sizeof(struct usr), 0);
+      }
+    }
+    else if (cliSig==REQRGST)
+    {
+      int sendSig = ACCRGST;
+      send(s, &sendSig, sizeof(int), 0);
+      char unamebuff[256];
+      char upwdbuff[256];
+      recv(s, unamebuff, 256, 0);
+      recv(s, upwdbuff, 256, 0);
+      struct usr * newAcc = (struct usr *)calloc(1, sizeof(struct usr));
+      newAcc->name = unamebuff;
+      newAcc->pwd = upwdbuff;
+      appendDB(newAcc);
+      free(newAcc);
+    }
   }
 }
 
