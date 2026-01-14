@@ -109,7 +109,7 @@ struct * board handle_client_data(int s, int listener, fd_set *master, int *fdma
 struct * board matchlogic(int socket1, int socket2){
   int subpid = fork();
   if(subpid == 0){
-    struct board * newboard = malloc(sizeof(board));
+    struct board * newboard = (struct board *) calloc(sizeof(board));
     newboard->pid = getpid();
     newboard->socket1 = socket1;
     newboard->socket2 = socket2;
