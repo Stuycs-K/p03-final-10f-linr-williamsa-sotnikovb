@@ -36,6 +36,7 @@ void clientLogic(int server_socket){
       }
     }
   }
+}
 
 void printBoard(int myBoard[3][3], int oppBoard[3][3], int x, int y){
   printf("Opponent guessed (%d, %d)\n", x, y);
@@ -101,7 +102,7 @@ void clientGameLogic(int server_socket){
   int oppBoard[3][3];
   memcpy(myBoard, board[0], sizeof(board[0]));
   memcpy(oppBoard, board[1], sizeof(board[1]));
-  printBoard(myBoard, oppBoard, x, y );
+  printBoard(myBoard, oppBoard, x, y);
   }
 
 }

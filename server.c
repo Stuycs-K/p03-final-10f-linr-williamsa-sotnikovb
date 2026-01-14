@@ -118,11 +118,8 @@ void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
     }
   }
   else{
-<<<<<<< HEAD
-    printf("server receives %s\n", buf);
-    buf[nbytes] = '\0';
-=======
->>>>>>> main
+
+
         // we got some data from a client
         // to implement how we handle this data
         // - if its a name of another client then we send request to that other client, should also send a "request sent" to first client
@@ -164,6 +161,7 @@ void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
     }
   }
 }
+
 
 /*straight BEEJ's code for converting a socket into an IP address string
 //this is just - for the moment at least - for being able to bug test and tell who's who
