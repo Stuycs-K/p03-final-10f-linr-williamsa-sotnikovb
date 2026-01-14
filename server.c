@@ -4,7 +4,7 @@
 #define TRUE 1
 #define FALSE 0
 #define MAX_CLIENTS FD_SETSIZE
-#define MAX_NUMBOARDS 10
+#define MAX_NUMMATCHES 10
 #include <string.h>
 #include <errno.h>
 
@@ -31,14 +31,14 @@ int main(int argc, char *argv[] ) {
   FD_ZERO(&master);
   FD_ZERO(&read_fds);
   int listen_socket = server_setup();
-  struct board * boardarray[MAX_NUMBOARDS]; // may need to make sure this is null? and initialize?
+  struct match * matcharray[MAX_NUMMATCHES]; // may need to make sure this is null? and initialize?
   //add listen_socket to the set
   FD_SET(listen_socket, &master);
   fdmax = listen_socket;
   while(1){ //main loop
     read_fds = master;
     int retval = 0;
-    struct board * newboard = NULL;
+    struct match * newmatch = NULL;
     if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
       perror("select");
       exit(16);
@@ -48,20 +48,20 @@ int main(int argc, char *argv[] ) {
         if(i == listen_socket)
           handle_new_connection(i, &master, &fdmax);
         else
-          newboard = handle_client_data(i, listen_socket, &master, &fdmax);
+          newmatch = handle_client_data(i, listen_socket, &master, &fdmax);
       }
     }
-    if(newboard != NULL){
-      for(int j = 0; j < MAX_NUMBOARDS; j++){
-        if(boardarray[j] != NULL){
-          boardarray[j] = newboard;
+    if(newmatch != NULL){
+      for(int j = 0; j < MAX_NUMMATCHES; j++){
+        if(matcharray[j] != NULL){
+          newmatcharray[j] = newmatch;
           break;
         }
       }
     }
-    for(int k = 0; k < MAX_NUMBOARDS; k++){
+    for(int k = 0; k < MAX_NUMMATCHES; k++){
       retval = 0;
-      waitpid(boardarray[j]->pid, &retval, WNOHANG);
+      waitpid(matcharray[j]->pid, &retval, WNOHANG);
       if(retval != 0){
         // code tba?
       }
@@ -117,8 +117,7 @@ struct usr * searchDB(char *unm, char *pwd)
   return NULL;
 }
 
-struct * board handle_client_data(int s, int listener, fd_set *master, int *fdmax){
-  char buf[256];    // buffer for client data
+struct * match handle_client_data(int s, int listener, fd_set *master, int *fdmax){
   int cliSig = -1;
   int nbytes;
   // handle data from a client
@@ -138,9 +137,10 @@ struct * board handle_client_data(int s, int listener, fd_set *master, int *fdma
     }
   }
   else{
-    buf[nbytes] = '\0';
-    if(/*conditions tba*/){
-      return matchlogic(socket1, socket2);
+    if(cliSig == ACCMATCH){
+      // read again to get socket2?
+      // remember to block on both ports on main
+      return matchlogic(s, socket2);
     }
         // we got some data from a client
         // to implement how we handle this data
@@ -184,13 +184,15 @@ struct * board handle_client_data(int s, int listener, fd_set *master, int *fdma
   }
 }
 
-struct * board matchlogic(int socket1, int socket2){
+//
+// when match terminates, it will return the score and then main server will unblock from those sockets
+struct * match matchlogic(int socket1, int socket2){
   int subpid = fork();
   if(subpid == 0){
-    struct board * newboard = (struct board *) calloc(sizeof(board));
-    newboard->pid = getpid();
-    newboard->socket1 = socket1;
-    newboard->socket2 = socket2;
+    struct match * newmatch = (struct match *) calloc(sizeof(match));
+    newmatch->pid = getpid();
+    newmatch->socket1 = socket1;
+    newmatch->socket2 = socket2;
   }
   else{
     return subpid;
