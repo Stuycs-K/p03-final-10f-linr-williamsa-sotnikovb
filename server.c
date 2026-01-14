@@ -1,8 +1,16 @@
+#include "CommDefs.h"
 #include "networking.h"
+#include "server.h"
 #define TRUE 1
 #define FALSE 0
 #define MAX_CLIENTS FD_SETSIZE
+#include <string.h>
+#include <errno.h>
 
+void talkToCli(int client_socket)
+{
+
+}
 
 /*
 We will have a single main server that manages incoming connections, and manages match requests.
@@ -42,6 +50,17 @@ int main(int argc, char *argv[] ) {
   }
 }
 
+int appendDB(struct usr * u)
+{
+  struct usr * temp = searchDB(u->name, u->pwd);
+  if (!temp)
+  {
+    int w_file = open("./userdata.ussv", O_WRONLY|O_APPEND, 0);
+    write(w_file, u, sizeof(u));
+  }
+  free(temp);
+  return -1;
+}
 //Combined BEEJ's Code w/ lab-16 server_tcp_handshake implementation
 void handle_new_connection(int listener, fd_set *master, int *fdmax){
   int newfd = server_tcp_handshake(listener);
@@ -57,11 +76,33 @@ void handle_new_connection(int listener, fd_set *master, int *fdmax){
   printf("server connected\n");
 }
 
+
+struct usr * searchDB(char *unm, char *pwd)
+{
+  int r_file = open("./userdata.ussv", O_RDONLY, 0);
+  if (r_file == -1)
+  {
+    close(r_file);
+    return NULL;
+  }
+  struct usr * out = (struct usr *)calloc(1, sizeof(struct usr));
+  while (read(r_file, out, sizeof(struct usr)))
+  {
+    if (!strcmp(out->name, unm) && !strcmp(out->pwd, pwd))
+    {
+      close(r_file);
+      return out;
+    }
+  }
+  close(r_file);
+  return NULL;
+}
+
 void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
-  char buf[256];    // buffer for client data
+  int cliSig = -1;
   int nbytes;
   // handle data from a client
-  if((nbytes = recv(s, buf, sizeof buf, 0)) <= 0){ // got error or connection closed by client
+  if((nbytes = recv(s, &cliSig, sizeof cliSig, 0)) <= 0){ // got error or connection closed by client
     if(nbytes == 0){ // connection closed
       printf("selectserver: socket %d hung up\n", s);
     }
@@ -77,12 +118,50 @@ void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
     }
   }
   else{
+<<<<<<< HEAD
     printf("server receives %s\n", buf);
     buf[nbytes] = '\0';
+=======
+>>>>>>> main
         // we got some data from a client
         // to implement how we handle this data
         // - if its a name of another client then we send request to that other client, should also send a "request sent" to first client
         // - if its an acceptance we should make the match server and remove both clients from our "online" list
+    if (cliSig==REQLGN)
+    {
+      int sendSig = ACCLGN;                         //send a signal accepting login to client
+      send(s, &sendSig, sizeof(int), 0);
+      char unamebuff[256];
+      char upwdbuff[256];
+      recv(s, unamebuff, 256, 0);       //await username and pwd input
+      recv(s, upwdbuff, 256, 0);
+      struct usr * temp = searchDB(unamebuff, upwdbuff);
+      if (!temp)
+      {
+        sendSig = DENY;
+        send(s, &sendSig, sizeof(int), 0);
+      }
+      else
+      {
+        sendSig = CNFRM;
+        send(s, &sendSig, sizeof(int), 0);
+        send(s, temp, sizeof(struct usr), 0);
+      }
+    }
+    else if (cliSig==REQRGST)
+    {
+      int sendSig = ACCRGST;
+      send(s, &sendSig, sizeof(int), 0);
+      char unamebuff[256];
+      char upwdbuff[256];
+      recv(s, unamebuff, 256, 0);
+      recv(s, upwdbuff, 256, 0);
+      struct usr * newAcc = (struct usr *)calloc(1, sizeof(struct usr));
+      newAcc->name = unamebuff;
+      newAcc->pwd = upwdbuff;
+      appendDB(newAcc);
+      free(newAcc);
+    }
   }
 }
 
