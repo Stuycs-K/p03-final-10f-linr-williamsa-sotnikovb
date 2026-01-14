@@ -1,5 +1,4 @@
 #include "networking.h"
-/*
 #include "CommDefs.h"
 #include "networking.h"
 
@@ -37,7 +36,7 @@ void clientLogic(int server_socket){
       }
     }
   }
-*/
+
 void printBoard(int myBoard[3][3], int oppBoard[3][3], int x, int y){
   printf("Opponent guessed (%d, %d)\n", x, y);
   printf("Your Board: \n");
@@ -73,7 +72,7 @@ void printBoard(int myBoard[3][3], int oppBoard[3][3], int x, int y){
   }
 }
 
-void clientLogic(int server_socket){
+void clientGameLogic(int server_socket){
   while (1){
   char buffer[256];
   int x;
@@ -115,7 +114,7 @@ int main(int argc, char *argv[] ) {
   while(1){
   int server_socket = client_tcp_handshake(IP);
   printf("client connected.\n");
-  clientLogic(server_socket);
+  clientGameLogic(server_socket);
   close(server_socket);
   exit(0);
 }
