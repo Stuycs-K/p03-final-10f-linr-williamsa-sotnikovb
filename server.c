@@ -29,6 +29,7 @@ int main(int argc, char *argv[] ) {
   fdmax = listen_socket;
   while(1){ //main loop
     read_fds = master;
+    int retval = 0;
     struct board * newboard = NULL;
     if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
       perror("select");
@@ -51,7 +52,11 @@ int main(int argc, char *argv[] ) {
       }
     }
     for(int k = 0; k < MAX_NUMBOARDS; k++){
-      wait(boardarray[j]->)
+      retval = 0;
+      waitpid(boardarray[j]->pid, &retval, WNOHANG);
+      if(retval != 0){
+        // code tba?
+      }
     }
   }
 }
