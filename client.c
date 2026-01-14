@@ -26,7 +26,39 @@ void clientLogic(int server_socket){
         {
           send(server_socket, uname, 256, 0);
           send(server_socket, upwd, 256, 0);
-          loggedin = 1;
+          printf("You have successfully registered. Please log in.\n");
+        }
+        else
+        {
+          printf("Server denied\n");
+        }
+      }
+      else if (!strcmp(buff, "1\n"))
+      {
+        printf("Please enter your username\n");
+        char uname[256];
+        char upwd[256];
+        fgets(uname, 256, stdin);
+        printf("Please enter your password\n");
+        fgets(upwd, 256, stdin);
+        int sendSig = REQLGN;
+        send(server_socket, &sendSig, sizeof(int), 0);
+        int recSig = -1;
+        recv(server_socket, &recSig, sizeof(int), 0);
+        if (recSig==ACCLGN)
+        {
+          send(server_socket, uname, 256, 0);
+          send(server_socket, upwd, 256, 0);
+          recv(server_socket, &recSig, sizeof(int), 0);
+          if (recSig==CNFRM)
+          {
+            printf("Welcome, %s.\n", uname);
+            loggedin = 1;
+          }
+          else if (recSig==DENY)
+          {
+            printf("Access denied. Please try again or register.\n");
+          }
         }
         else
         {
@@ -36,7 +68,7 @@ void clientLogic(int server_socket){
     }
   }
 
-  
+
 }
 
 int main(int argc, char *argv[] ) {

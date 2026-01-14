@@ -135,7 +135,8 @@ void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
       {
         sendSig = CNFRM;
         send(s, &sendSig, sizeof(int), 0);
-        send(s, temp, sizeof(struct usr), 0);
+        printf("User %s connected\n", temp->name);
+        //send(s, temp, sizeof(struct usr), 0);
       }
     }
     else if (cliSig==REQRGST)
