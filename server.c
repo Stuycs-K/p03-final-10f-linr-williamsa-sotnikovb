@@ -8,10 +8,6 @@
 #include <string.h>
 #include <errno.h>
 
-void talkToCli(int client_socket)
-{
-
-}
 
 /*
 We will have a single main server that manages incoming connections, and manages match requests.
@@ -75,9 +71,9 @@ int appendDB(struct usr * u)
   if (!temp)
   {
     int w_file = open("./userdata.ussv", O_WRONLY|O_APPEND, 0);
-    write(w_file, u, sizeof(u));
+    write(w_file, u, sizeof(struct usr));
   }
-  free(temp);
+  else free(temp);
   return -1;
 }
 //Combined BEEJ's Code w/ lab-16 server_tcp_handshake implementation
@@ -164,7 +160,8 @@ struct * board handle_client_data(int s, int listener, fd_set *master, int *fdma
       {
         sendSig = CNFRM;
         send(s, &sendSig, sizeof(int), 0);
-        send(s, temp, sizeof(struct usr), 0);
+        printf("User %s connected\n", temp->name);
+        //send(s, temp, sizeof(struct usr), 0);
       }
     }
     else if (cliSig==REQRGST)
@@ -176,8 +173,10 @@ struct * board handle_client_data(int s, int listener, fd_set *master, int *fdma
       recv(s, unamebuff, 256, 0);
       recv(s, upwdbuff, 256, 0);
       struct usr * newAcc = (struct usr *)calloc(1, sizeof(struct usr));
-      newAcc->name = unamebuff;
-      newAcc->pwd = upwdbuff;
+      strcpy(newAcc->name, unamebuff);
+      strcpy(newAcc->pwd, upwdbuff);
+      newAcc->wins = 0;
+      newAcc->losses = 0;
       appendDB(newAcc);
       free(newAcc);
     }
