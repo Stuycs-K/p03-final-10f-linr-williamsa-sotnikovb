@@ -33,4 +33,6 @@ int server_setup();
 int client_tcp_handshake(char*server_address);
 int socket(int domain, int type, int protocol);
 int server_tcp_handshake(int listen_socket);
+void err(int i, char*message);
+struct usr {char *name; char *pwd; int wins; int losses;};
 #endif
