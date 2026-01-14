@@ -52,7 +52,7 @@ int appendDB(struct usr * u)
   if (!temp)
   {
     int w_file = open("./userdata.ussv", O_WRONLY|O_APPEND, 0);
-    write(w_file, u, sizeof(u));
+    write(w_file, u, sizeof(struct usr));
   }
   else free(temp);
   return -1;
@@ -147,8 +147,10 @@ void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
       recv(s, unamebuff, 256, 0);
       recv(s, upwdbuff, 256, 0);
       struct usr * newAcc = (struct usr *)calloc(1, sizeof(struct usr));
-      newAcc->name = unamebuff;
-      newAcc->pwd = upwdbuff;
+      strcpy(newAcc->name, unamebuff);
+      strcpy(newAcc->pwd, upwdbuff);
+      newAcc->wins = 0;
+      newAcc->losses = 0;
       appendDB(newAcc);
       free(newAcc);
     }

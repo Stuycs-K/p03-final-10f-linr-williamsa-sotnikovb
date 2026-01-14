@@ -7,4 +7,5 @@
 #define ACCRGST 104
 #define DENY 105
 #define CNFRM 106
+#define SDBOARD 107
 #endif
