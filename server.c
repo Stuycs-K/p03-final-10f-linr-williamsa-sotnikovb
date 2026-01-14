@@ -97,7 +97,7 @@ struct * board handle_client_data(int s, int listener, fd_set *master, int *fdma
   else{
     buf[nbytes] = '\0';
     if(/*conditions tba*/){
-      return subserverlogic(socket1, socket2);
+      return matchlogic(socket1, socket2);
     }
         // we got some data from a client
         // to implement how we handle this data
@@ -106,7 +106,7 @@ struct * board handle_client_data(int s, int listener, fd_set *master, int *fdma
   }
 }
 
-struct * board subserverlogic(int socket1, int socket2){
+struct * board matchlogic(int socket1, int socket2){
   int subpid = fork();
   if(subpid == 0){
     struct board * newboard = malloc(sizeof(board));
