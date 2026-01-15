@@ -34,28 +34,36 @@ int main(int argc, char *argv[] ) {
   fdmax = listen_socket;
   activemaster = master;
   while(1){ //main loop
+    printf("4\n");
     read_fds = activemaster;
     int retval = 0;
     struct match * newmatch = NULL;
     if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
       perror("select");
-      exit(16);
+      exit(0);
     }
     for(int i = 0; i <= fdmax; i++){
       if(FD_ISSET(i, &read_fds)) {
+        printf("%d is set\n", i);
         if(i == listen_socket){
           handle_new_connection(i, &activemaster, &fdmax);
+          printf("1\n");
           master = activemaster;
+          printf("2\n");
         }
         else{
+          printf("3\n");
           newmatch = handle_client_data(i, listen_socket, &activemaster, &fdmax);
           if(newmatch != NULL){
             FD_CLR(newmatch->socket1, &activemaster);
             FD_CLR(newmatch->socket2, &activemaster);
           }
         }
+        printf("6\n");
       }
+      printf("5\n");
     }
+    printf("7\n");
     if(newmatch != NULL){
       for(int j = 0; j < MAX_NUMMATCHES; j++){
         if(matcharray[j] != NULL){
@@ -64,11 +72,17 @@ int main(int argc, char *argv[] ) {
         }
       }
     }
+    printf("8\n");
     for(int k = 0; k < MAX_NUMMATCHES; k++){
+      printf("12\n");
       retval = 0; // retval should give either the winner's socket or if one exited - but how would it tell which one?
-      int matchpid = waitpid(matcharray[k]->pid, &retval, WNOHANG);
+      int matchpid = 0;
+      printf("9\n");
+      matchpid = waitpid(matcharray[k]->pid, &retval, WNOHANG);
+      printf("10\n");
       //needs to unblock from sockets - may need to for loop?
       if(retval != 0){
+        printf("11\n");
         for(int l = 0; l < MAX_NUMMATCHES; l++){
           if(matchpid == matcharray[l]->pid){
             FD_SET(matcharray[l]->socket1, &activemaster);
@@ -80,6 +94,7 @@ int main(int argc, char *argv[] ) {
       }
       matcharray[k] = NULL;
     }
+    printf("9\n");
   }
 }
 
@@ -266,7 +281,7 @@ struct match * matchlogic(int socket1, int socket2){
 
 
 
-/*straight BEEJ's code for converting a socket into an IP address string
+/*straight BEEJ's code for converting a socket into an IP address striprintfng
 //this is just - for the moment at least - for being able to bug test and tell who's who
 const char *inet_ntop2(void *addr, char *buf, size_t size){
   struct sockaddr_storage *sas = addr;
