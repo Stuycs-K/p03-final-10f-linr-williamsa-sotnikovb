@@ -8,4 +8,7 @@
 #define DENY 105
 #define CNFRM 106
 #define SDBOARD 107
+#define REQMATCH 108
+#define ACCMATCH 109
+#define DENYMATCH 110
 #endif

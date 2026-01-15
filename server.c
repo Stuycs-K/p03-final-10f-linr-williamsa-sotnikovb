@@ -4,6 +4,7 @@
 #define TRUE 1
 #define FALSE 0
 #define MAX_CLIENTS FD_SETSIZE
+#define MAX_NUMMATCHES 10
 #include <string.h>
 #include <errno.h>
 
@@ -18,32 +19,73 @@ When a client requests to play another client on the list, we must write to the 
 //main server code
 int main(int argc, char *argv[] ) {
   fd_set master;    // master file descriptor list
+  fd_set activemaster;
   fd_set read_fds;  // temp file descriptor list for select()
   int fdmax;        // maximum file descriptor number
   //struct timeval tv;
   //tv.tv_sec = 2; // select function will continue every 2 sec
+  FD_ZERO(&activemaster);
   FD_ZERO(&master);
   FD_ZERO(&read_fds);
-  //assume this functuion correcly sets up a listening socket
   int listen_socket = server_setup();
+  struct match * matcharray[MAX_NUMMATCHES]; // may need to make sure this is null? and initialize?
   //add listen_socket to the set
   FD_SET(listen_socket, &master);
   fdmax = listen_socket;
+  activemaster = master;
   while(1){ //main loop
-    read_fds = master;
+    read_fds = activemaster;
+    int retval = 0;
+    struct match * newmatch = NULL;
     if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
       perror("select");
       exit(16);
     }
     for(int i = 0; i <= fdmax; i++){
       if(FD_ISSET(i, &read_fds)) {
-        if(i == listen_socket)
-          handle_new_connection(i, &master, &fdmax);
-        else
-          handle_client_data(i, listen_socket, &master, &fdmax);
+        if(i == listen_socket){
+          handle_new_connection(i, &activemaster, &fdmax);
+          master = activemaster;
+        }
+        else{
+          newmatch = handle_client_data(i, listen_socket, &activemaster, &fdmax);
+          if(newmatch != NULL){
+            FD_CLR(newmatch->socket1, &activemaster);
+            FD_CLR(newmatch->socket2, &activemaster);
+          }
+        }
       }
     }
+    if(newmatch != NULL){
+      for(int j = 0; j < MAX_NUMMATCHES; j++){
+        if(matcharray[j] != NULL){
+          matcharray[j] = newmatch;
+          break;
+        }
+      }
+    }
+    for(int k = 0; k < MAX_NUMMATCHES; k++){
+      retval = 0; // retval should give either the winner's socket or if one exited - but how would it tell which one?
+      int matchpid = waitpid(matcharray[k]->pid, &retval, WNOHANG);
+      //needs to unblock from sockets - may need to for loop?
+      if(retval != 0){
+        for(int l = 0; l < MAX_NUMMATCHES; l++){
+          if(matchpid == matcharray[l]->pid){
+            FD_SET(matcharray[l]->socket1, &activemaster);
+            FD_SET(matcharray[l]->socket2, &activemaster);
+          }
+        }
+        // code tba - the matcharray should be updated - removing this index
+        // the leaderboard should be updated
+      }
+      matcharray[k] = NULL;
+    }
   }
+}
+
+struct usr * getPlayers()
+{
+  
 }
 
 int appendDB(struct usr * u)
@@ -57,6 +99,7 @@ int appendDB(struct usr * u)
   else free(temp);
   return -1;
 }
+
 //Combined BEEJ's Code w/ lab-16 server_tcp_handshake implementation
 void handle_new_connection(int listener, fd_set *master, int *fdmax){
   int newfd = server_tcp_handshake(listener);
@@ -69,6 +112,7 @@ void handle_new_connection(int listener, fd_set *master, int *fdmax){
     *fdmax = newfd;
     }
   }
+  printf("server connected\n");
 }
 
 
@@ -93,7 +137,8 @@ struct usr * searchDB(char *unm, char *pwd)
   return NULL;
 }
 
-void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
+//does listener do anything?
+struct match * handle_client_data(int s, int listener, fd_set *master, int *fdmax){
   int cliSig = -1;
   int nbytes;
   // handle data from a client
@@ -113,6 +158,27 @@ void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
     }
   }
   else{
+    if(cliSig == ACCMATCH){
+      // read again to get socket2? - can i just recv another int - does recv clear the buffer?
+      int socket2;
+      if((nbytes = recv(s, &socket2, sizeof socket2, 0)) <= 0){ // got error or connection closed by client
+        if(nbytes == 0){ // connection closed
+          printf("selectserver: socket %d hung up\n", s);
+        }
+        else{
+          perror("recv");
+        }
+        close(s); // bye!
+        FD_CLR(s, master); // remove from master set
+        if(s == *fdmax){
+          while (*fdmax >= 0 && !FD_ISSET(*fdmax, master)){
+          (*fdmax)--;
+          }
+        }
+      }
+      // remember to block on both ports on main
+      return matchlogic(s, socket2);
+    }
         // we got some data from a client
         // to implement how we handle this data
         // - if its a name of another client then we send request to that other client, should also send a "request sent" to first client
@@ -155,8 +221,58 @@ void handle_client_data(int s, int listener, fd_set *master, int *fdmax){
       appendDB(newAcc);
       free(newAcc);
     }
+    else if (cliSig==REQLDBRD)
+    {
+
+    }
+  }
+  return NULL; //perhaps bad practice
+}
+
+
+// when match terminates, it will return the score and then main server will unblock from those sockets
+// on main server it just returns the information the main server will need so that it can pair up
+struct match * matchlogic(int socket1, int socket2){
+  int subpid = fork();
+  if(subpid == 0){//in child/match
+    fd_set match_fds;
+    int maxfd = 0;
+    int winner = 0;
+    while(1){
+      FD_ZERO(&match_fds);
+      FD_SET(socket1, &match_fds);
+      FD_SET(socket2, &match_fds);
+      maxfd = (double) fmax((double) socket1, (double)socket2)+1;
+      if(select(maxfd+1,&match_fds, NULL, NULL, NULL) == -1){
+        perror("select");
+        exit(255);
+      }
+      if(FD_ISSET(socket1, &match_fds)){
+        //read and send however that is to be done
+        //should break loop if someone wins
+      }
+      if (FD_ISSET(socket2, &match_fds)) {
+        }
+    }
+    if(winner != 0){
+      exit(winner);
+    }
+    else{
+      printf("match server error - loop exited improperly\n");
+      exit(-1);
+    }
+  }
+  else{
+    struct match * newmatch = (struct match *) calloc(1,sizeof(struct match));
+    newmatch->pid = subpid;
+    newmatch->socket1 = socket1;
+    newmatch->socket2 = socket2;
+    return newmatch;
   }
 }
+
+
+
 
 /*straight BEEJ's code for converting a socket into an IP address string
 //this is just - for the moment at least - for being able to bug test and tell who's who

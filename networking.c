@@ -84,7 +84,7 @@ int client_tcp_handshake(char * server_address) {
   //create the socket
   connect(serverd, results -> ai_addr, results -> ai_addrlen);
   //connect() to the server
-
+  free(hints);
   freeaddrinfo(results);
 
   return serverd;
