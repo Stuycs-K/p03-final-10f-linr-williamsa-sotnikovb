@@ -7,7 +7,8 @@
 #define ACCRGST 104
 #define DENY 105
 #define CNFRM 106
-#define REQMATCH 107
-#define ACCMATCH 108
-#define DENYMATCH 109
+#define SDBOARD 107
+#define REQMATCH 108
+#define ACCMATCH 109
+#define DENYMATCH 110
 #endif
