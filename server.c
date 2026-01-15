@@ -193,8 +193,10 @@ struct * board matchlogic(int socket1, int socket2){
     newboard->socket2 = socket2;
     int board1[2][3][3];
     int board2[2][3][3];
-    // here add the initialization of the board and where the client want their ships to be. 3 Boats. 
+    // here add the initialization of the board and where the client want their ships to be. 3 Boats.
     char buffer[256];
+    while(1){ // loop of gameplay starts here
+    // check for end of game here
     int bytes = read(socket1, buffer, sizeof(buffer));
     if (bytes == -1){
       err(server_socket, "read failed");
@@ -212,7 +214,18 @@ struct * board matchlogic(int socket1, int socket2){
       err(server_socket, "write failed");
     }
     // This massive block up here is just reading the guess each client chose and send the guess to their opponent.
-    // Here make the calcuation of the board and send them back to the client.
+    // Here make the calcuation of the board and send them back to the client. Board 1 here
+    bytes = write(socket1, board, sizeof(board));
+    if (bytes == -1){
+      err(server_socket, "read failed");
+    }
+    // Board two calc Here
+    bytes = write(socket2, board, sizeof(board));
+    if (bytes == -1){
+      err(server_socket, "read failed");
+    }
+  }
+
   }
   else{
     return subpid;
