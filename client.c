@@ -98,11 +98,11 @@ void clientGameLogic(int server_socket){
   if (bytes == -1){
     err(server_socket, "read failed");
   }
-  int myBoard[3][3];
-  int oppBoard[3][3];
-  memcpy(myBoard, board[0], sizeof(board[0]));
-  memcpy(oppBoard, board[1], sizeof(board[1]));
-  printBoard(myBoard, oppBoard, x, y);
+  //int myBoard[3][3];
+  //int oppBoard[3][3];
+//  memcpy(myBoard, board[0], sizeof(board[0]));
+  //memcpy(oppBoard, board[1], sizeof(board[1]));
+  printBoard(board[0], oppBoard[1], x, y);
   }
 
 }
