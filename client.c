@@ -4,9 +4,11 @@
 void clientLogic(int server_socket){
   printf("Welcome to Battleship 3000\n");
   char loggedin = 0;
+  struct usr * self;
+  char buff[256];
+
   while(!loggedin)
   {
-    char buff[256];
     printf("Enter 1 for login. Enter 2 for registration.\n");
     if (fgets(buff, 256, stdin))
     {
@@ -53,6 +55,7 @@ void clientLogic(int server_socket){
           if (recSig==CNFRM)
           {
             printf("Welcome, %s.\n", uname);
+            recv(server_socket, self, sizeof(struct usr), 0);
             loggedin = 1;
           }
           else if (recSig==DENY)
@@ -68,7 +71,13 @@ void clientLogic(int server_socket){
     }
   }
 
-
+  while(1)
+  {
+    printf("%s\nWins: %d\nLosses: %d\n", self->name, self->wins, self->losses);
+    printf("1. View available players\n2. View leaderboard\n3. Exit");
+    fgets(buff, 256, stdin);
+    if (!strcmp(buff, "3\n")) exit(0);
+  }
 }
 
 int main(int argc, char *argv[] ) {
