@@ -4,10 +4,14 @@
 #define TRUE 1
 #define FALSE 0
 #define MAX_CLIENTS FD_SETSIZE
-#define MAX_NUMMATCHES 10
+#define MAX_NUMBOARDS 10
 #include <string.h>
 #include <errno.h>
 
+void talkToCli(int client_socket)
+{
+
+}
 
 /*
 We will have a single main server that manages incoming connections, and manages match requests.
@@ -19,70 +23,51 @@ When a client requests to play another client on the list, we must write to the 
 //main server code
 int main(int argc, char *argv[] ) {
   fd_set master;    // master file descriptor list
-  fd_set activemaster;
   fd_set read_fds;  // temp file descriptor list for select()
   int fdmax;        // maximum file descriptor number
   //struct timeval tv;
   //tv.tv_sec = 2; // select function will continue every 2 sec
-  FD_ZERO(&activemaster);
+
   FD_ZERO(&master);
   FD_ZERO(&read_fds);
   int listen_socket = server_setup();
-  struct match * matcharray[MAX_NUMMATCHES]; // may need to make sure this is null? and initialize?
+  struct board * boardarray[MAX_NUMBOARDS]; // may need to make sure this is null? and initialize?
   //add listen_socket to the set
   FD_SET(listen_socket, &master);
   fdmax = listen_socket;
-  activemaster = master;
   while(1){ //main loop
-    read_fds = activemaster;
+    read_fds = master;
     int retval = 0;
-    struct match * newmatch = NULL;
+    struct board * newboard = NULL;
     if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
       perror("select");
       exit(16);
     }
     for(int i = 0; i <= fdmax; i++){
       if(FD_ISSET(i, &read_fds)) {
-        if(i == listen_socket){
-          handle_new_connection(i, &activemaster, &fdmax);
-          master = activemaster;
-        }
-        else{
-          newmatch = handle_client_data(i, listen_socket, &activemaster, &fdmax);
-          if(newmatch != NULL){
-            FD_CLR(newmatch->socket1, &activemaster);
-            FD_CLR(newmatch->socket2, &activemaster);
-          }
-        }
+        if(i == listen_socket)
+          handle_new_connection(i, &master, &fdmax);
+        else
+          newboard = handle_client_data(i, listen_socket, &master, &fdmax);
       }
     }
-    if(newmatch != NULL){
-      for(int j = 0; j < MAX_NUMMATCHES; j++){
-        if(matcharray[j] != NULL){
-          matcharray[j] = newmatch;
+    if(newboard != NULL){
+      for(int j = 0; j < MAX_NUMBOARDS; j++){
+        if(boardarray[j] != NULL){
+          boardarray[j] = newboard;
           break;
         }
       }
     }
-    for(int k = 0; k < MAX_NUMMATCHES; k++){
-      retval = 0; // retval should give either the winner's socket or if one exited - but how would it tell which one?
-      int matchpid = waitpid(matcharray[k]->pid, &retval, WNOHANG);
-      //needs to unblock from sockets - may need to for loop?
+    for(int k = 0; k < MAX_NUMBOARDS; k++){
+      retval = 0;
+      waitpid(boardarray[j]->pid, &retval, WNOHANG);
       if(retval != 0){
-        for(int l = 0; l < MAX_NUMMATCHES; l++){
-          if(matchpid == matcharray[l]->pid){
-            FD_SET(matcharray[l]->socket1, &activemaster);
-            FD_SET(matcharray[l]->socket2, &activemaster);
-          }
-        }
-        // code tba - the matcharray should be updated - removing this index
-        // the leaderboard should be updated
+        // code tba?
       }
-      matcharray[k] = NULL;
     }
   }
 }
-
 
 int appendDB(struct usr * u)
 {
@@ -90,12 +75,11 @@ int appendDB(struct usr * u)
   if (!temp)
   {
     int w_file = open("./userdata.ussv", O_WRONLY|O_APPEND, 0);
-    write(w_file, u, sizeof(struct usr));
+    write(w_file, u, sizeof(u));
   }
-  else free(temp);
+  free(temp);
   return -1;
 }
-
 //Combined BEEJ's Code w/ lab-16 server_tcp_handshake implementation
 void handle_new_connection(int listener, fd_set *master, int *fdmax){
   int newfd = server_tcp_handshake(listener);
@@ -133,8 +117,8 @@ struct usr * searchDB(char *unm, char *pwd)
   return NULL;
 }
 
-//does listener do anything?
-struct match * handle_client_data(int s, int listener, fd_set *master, int *fdmax){
+struct * board handle_client_data(int s, int listener, fd_set *master, int *fdmax){
+  char buf[256];    // buffer for client data
   int cliSig = -1;
   int nbytes;
   // handle data from a client
@@ -154,26 +138,9 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
     }
   }
   else{
-    if(cliSig == ACCMATCH){
-      // read again to get socket2? - can i just recv another int - does recv clear the buffer?
-      int socket2;
-      if((nbytes = recv(s, &socket2, sizeof socket2, 0)) <= 0){ // got error or connection closed by client
-        if(nbytes == 0){ // connection closed
-          printf("selectserver: socket %d hung up\n", s);
-        }
-        else{
-          perror("recv");
-        }
-        close(s); // bye!
-        FD_CLR(s, master); // remove from master set
-        if(s == *fdmax){
-          while (*fdmax >= 0 && !FD_ISSET(*fdmax, master)){
-          (*fdmax)--;
-          }
-        }
-      }
-      // remember to block on both ports on main
-      return matchlogic(s, socket2);
+    buf[nbytes] = '\0';
+    if(/*conditions tba*/){
+      return matchlogic(socket1, socket2);
     }
         // we got some data from a client
         // to implement how we handle this data
@@ -197,8 +164,7 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
       {
         sendSig = CNFRM;
         send(s, &sendSig, sizeof(int), 0);
-        printf("User %s connected\n", temp->name);
-        //send(s, temp, sizeof(struct usr), 0);
+        send(s, temp, sizeof(struct usr), 0);
       }
     }
     else if (cliSig==REQRGST)
@@ -210,56 +176,46 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
       recv(s, unamebuff, 256, 0);
       recv(s, upwdbuff, 256, 0);
       struct usr * newAcc = (struct usr *)calloc(1, sizeof(struct usr));
-      strcpy(newAcc->name, unamebuff);
-      strcpy(newAcc->pwd, upwdbuff);
-      newAcc->wins = 0;
-      newAcc->losses = 0;
+      newAcc->name = unamebuff;
+      newAcc->pwd = upwdbuff;
       appendDB(newAcc);
       free(newAcc);
     }
   }
-  return NULL; //perhaps bad practice
 }
 
-
-// when match terminates, it will return the score and then main server will unblock from those sockets
-// on main server it just returns the information the main server will need so that it can pair up
-struct match * matchlogic(int socket1, int socket2){
+struct * board matchlogic(int socket1, int socket2){
   int subpid = fork();
-  if(subpid == 0){//in child/match
-    fd_set match_fds;
-    int maxfd = 0;
-    int winner = 0;
-    while(1){
-      FD_ZERO(&match_fds);
-      FD_SET(socket1, &match_fds);
-      FD_SET(socket2, &match_fds);
-      maxfd = (double) fmax((double) socket1, (double)socket2)+1;
-      if(select(maxfd+1,&match_fds, NULL, NULL, NULL) == -1){
-        perror("select");
-        exit(255);
-      }
-      if(FD_ISSET(socket1, &match_fds)){
-        //read and send however that is to be done
-        //should break loop if someone wins
-      }
-      if (FD_ISSET(socket2, &match_fds)) {
-        }
+  if(subpid == 0){
+    struct board * newboard = (struct board *) calloc(sizeof(board));
+    newboard->pid = getpid();
+    newboard->socket1 = socket1;
+    newboard->socket2 = socket2;
+    int board1[2][3][3];
+    int board2[2][3][3];
+    // here add the initialization of the board and where the client want their ships to be. 3 Boats. 
+    char buffer[256];
+    int bytes = read(socket1, buffer, sizeof(buffer));
+    if (bytes == -1){
+      err(server_socket, "read failed");
     }
-    if(winner != 0){
-      exit(winner);
+    bytes = write(socket2, buffer, sizeof(buffer));
+    if (bytes == -1){
+      err(server_socket, "write failed");
     }
-    else{
-      printf("match server error - loop exited improperly\n");
-      exit(-1);
+    bytes = read(socket2, buffer, sizeof(buffer));
+    if (bytes == -1){
+      err(server_socket, "write failed");
     }
+    bytes = write(socket1, buffer, sizeof(buffer));
+    if (bytes == -1){
+      err(server_socket, "write failed");
+    }
+    // This massive block up here is just reading the guess each client chose and send the guess to their opponent.
+    // Here make the calcuation of the board and send them back to the client.
   }
   else{
-    struct match * newmatch = (struct match *) calloc(1,sizeof(struct match));
-    newmatch->pid = subpid;
-    newmatch->socket1 = socket1;
-    newmatch->socket2 = socket2;
-    return newmatch;
+    return subpid;
   }
 }
 
