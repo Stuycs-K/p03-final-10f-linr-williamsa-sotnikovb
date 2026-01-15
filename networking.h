@@ -15,15 +15,17 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/queue.h> // essentially linked list implementation
+#include <math.h>
 
 #ifndef NETWORKING_H
 #define NETWORKING_H
 #define PORT "6767"
 #define BUFFER_SIZE 1024
 const char *inet_ntop2(void *addr, char *buf, size_t size);
-void handle_client_data(int s, int listener, fd_set *master, int *fdmax);
+struct match * handle_client_data(int s, int listener, fd_set *master, int *fdmax);
 void handle_new_connection(int listener, fd_set *master, int *fdmax);
-struct board
+struct match * matchlogic(int socket1, int socket2);
+struct match
 {
     int pid;
     int socket1;
