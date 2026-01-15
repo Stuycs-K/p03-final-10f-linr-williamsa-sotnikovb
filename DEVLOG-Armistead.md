@@ -18,3 +18,12 @@ Figured out functionalities, specifically if we intend to have select monitor bo
 
 ### 2025-01-11 - Made server skeleton
 Made skeleton for main server, match server and specifics of handling requests not made yet, see comments
+
+### 2025-01-12 - Figured out implementation and bugtested
+Figured out how specifics of match server communication with main server would be implemented
+
+### 2025-01-13 - Figured out board implementation
+Figured out more specifics of match servers - using structs to store the metainformation of each match - the sockets and pid that the main server could then pair up with the match results.
+
+### 2025-01-14 - Finished server side programming (mostly)
+Smoothed out the communication back up to main server, using some structs and some signals.
