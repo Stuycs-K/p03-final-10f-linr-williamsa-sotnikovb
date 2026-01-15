@@ -191,12 +191,24 @@ struct * board matchlogic(int socket1, int socket2){
     newboard->pid = getpid();
     newboard->socket1 = socket1;
     newboard->socket2 = socket2;
-    int board1[2][3][3];
+    int board1[2][3][3]; // index 0 of first array is personal, 1 is opp
     int board2[2][3][3];
     // here add the initialization of the board and where the client want their ships to be. 3 Boats.
     char buffer[256];
     while(1){ // loop of gameplay starts here
     // check for end of game here
+    //board 1 check first
+    int count = 0;
+    for (int i = 0; i < 3; i++){
+      for (int e = 0; e < 3; e++){
+        if (board[0][i][e] == 2){
+          count++;
+        }
+      }
+    }
+    if (count == 3){
+      printf("")
+    }
     int bytes = read(socket1, buffer, sizeof(buffer));
     if (bytes == -1){
       err(server_socket, "read failed");
