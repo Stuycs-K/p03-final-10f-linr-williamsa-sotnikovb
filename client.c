@@ -1,12 +1,15 @@
 #include "networking.h"
 #include "CommDefs.h"
-
+#include "networking.h"
+#define STDIN 0
 void clientLogic(int server_socket){
   printf("Welcome to Battleship 3000\n");
   char loggedin = 0;
+  struct usr * self;
+  char buff[256];
+
   while(!loggedin)
   {
-    char buff[256];
     printf("Enter 1 for login. Enter 2 for registration.\n");
     if (fgets(buff, 256, stdin))
     {
@@ -18,6 +21,9 @@ void clientLogic(int server_socket){
         fgets(uname, 256, stdin);
         printf("Please enter a password\n");
         fgets(upwd, 256, stdin);
+        uname[strlen(uname)-1] = '\0';
+        upwd[strlen(upwd)-1] = '\0';
+
         int sendSig = REQRGST;
         send(server_socket, &sendSig, sizeof(int), 0);
         int recSig = -1;
@@ -53,6 +59,7 @@ void clientLogic(int server_socket){
           if (recSig==CNFRM)
           {
             printf("Welcome, %s.\n", uname);
+            recv(server_socket, self, sizeof(struct usr), 0);
             loggedin = 1;
           }
           else if (recSig==DENY)
@@ -67,9 +74,110 @@ void clientLogic(int server_socket){
       }
     }
   }
+  fd_set master;
+  fd_set read_fds;
+  int fdmax;
+  FD_ZERO(&master);
+  FD_ZERO(&read_fds);
+  FD_SET(server_socket, &master);
+  FD_SET(STDIN, &master);
+  fdmax = server_socket;
+  read_fds = master;
+  while(loggedin){
+    printf("%s\nWins: %d\nLosses: %d\n", self->name, self->wins, self->losses);
+    printf("1. View available players\n2. Connect to player\n3. View leaderboard\n4. Exit\n");
+    char buf[5000];
+    if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
+      perror("select");
+      exit(0);
+    }
+    for(int i = 0; i <= fdmax; i++){
+      if(FD_ISSET(i, &read_fds)) {
+        printf("%d is set\n", i);
+        if(i == STDIN){
+          fgets(buf, 5000, stdin);
+          if (!strcmp(buf, "4\n")) exit(0);
+          else if (!strcmp(buf, "3\n"))
+          {
+            int sendSig = REQLDBRD;
+            send(server_socket, &sendSig, sizeof(int), 0);
 
-
+            int size = 0;
+            recv(server_socket, &size, sizeof(int), 0);
+            struct usr * * players = (struct usr **)calloc(size, 1);
+            recv(server_socket, players, size, 0);
+            printf("LEADERBOARD:\n\n");
+            for (size_t i = 0; i < size/sizeof(struct usr); i++)
+            {
+              printf("%d. %256s - %2d wins - %2d losses", i+1, players[i]->name, players[i]->wins, players[i]->losses);
+            }
+          }
+          if(!strcmp(buf, "1\n")){
+            int sendSig = REQPLYRS;
+            send(server_socket, &sendSig, sizeof(int), 0);
+            recv(server_socket, buf, sizeof(buf), 0);
+            printf("players online:\n");
+            printf("%s",buf);
+          }
+          if(!strcmp(buf, "2\n")){
+            int sendSig = REQMATCH;
+            printf("Who would you like to play?\n");
+            fgets(buf, 5000, stdin);
+            send(server_socket, &sendSig, sizeof(int), 0);
+            send(server_socket, buf, sizeof(int), 0);
+            int response = 0;
+            recv(server_socket, &response, sizeof(buf), 0);
+            if(WAITONRESPONSE == response){
+              printf("request sent...\n");
+            }
+            else{
+              printf("request denied :( \n");
+            }
+          }
+        }
+        if(i == server_socket){
+          int serverSig = 0;
+          int opponent = 0;
+          recv(server_socket, &serverSig, sizeof(int), 0);
+          if(serverSig == REQMATCH){
+            recv(server_socket, &opponent, sizeof(int), 0);
+            char buf2[256];
+            printf("You have a match request. Press 1 to accept, 2 to deny\n");
+            fgets(buf2, sizeof(buf2), stdin);
+            if(!strcmp(buf2, "1\n")){
+              int cliSig = ACCMATCH;
+              send(server_socket, &cliSig, sizeof(int), 0);
+              send(server_socket, &opponent, sizeof(opponent), 0);
+          }
+            if(!strcmp(buf2, "2\n")){
+              int cliSig = DENYMATCH;
+              send(server_socket, &cliSig, sizeof(int), 0);
+              send(server_socket, &opponent, sizeof(opponent), 0);
+            }
+          }
+          if(serverSig == STARTMATCH){
+            printf("REQUEST ACCEPTED MATCH STARTING\n");
+          }
+        if(serverSig == DENYMATCH){
+          printf("request to match was denied\n");
+        }
+      }
+    }
+    read_fds = master;
 }
+}
+}
+
+int main(int argc, char *argv[]){
+  char* IP = "127.0.0.1";
+  if(argc>1){
+    IP=argv[1];
+  }
+  int server_socket = client_tcp_handshake(IP);
+
+  clientLogic(server_socket);
+}
+
 
 void printBoard(int myBoard[3][3], int oppBoard[3][3], int x, int y){
   printf("Opponent guessed (%d, %d)\n", x, y);
@@ -169,11 +277,7 @@ void clientGameLogic(int server_socket){
   //int oppBoard[3][3];
 //  memcpy(myBoard, board[0], sizeof(board[0]));
   //memcpy(oppBoard, board[1], sizeof(board[1]));
-<<<<<<< HEAD
-  printBoard(board[0], Board[1], x, y);
-=======
   printBoard(board[0], board[1], x, y);
->>>>>>> main
   }
 
 }
