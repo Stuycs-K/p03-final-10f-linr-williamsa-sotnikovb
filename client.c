@@ -1,6 +1,5 @@
 #include "networking.h"
 #include "CommDefs.h"
-#include "networking.h"
 
 void clientLogic(int server_socket){
   printf("Welcome to Battleship 3000\n");
@@ -79,7 +78,7 @@ void printBoard(int myBoard[3][3], int oppBoard[3][3], int x, int y){
   for(int i = 0; i < 3; i++){
     for (int b = 0; b < 4; b++){
       if (b == 0){
-        printf("%d ", b);
+        printf("%d ", i);
       }
       else{
         printf("%d ", myBoard[i][b - 1]);
@@ -108,17 +107,50 @@ void printBoard(int myBoard[3][3], int oppBoard[3][3], int x, int y){
 }
 
 void clientGameLogic(int server_socket){
-  while (1){
   char buffer[256];
   int x;
   int y;
-  printf("Insert the coordinates you wish to check in x y form: ");
+  printf("Welcome to the game player.\n");
+  printf("Insert the coordinates you wish to place boat 1 in x y form: ");
   char * s = fgets(buffer, sizeof(buffer), stdin);
   if (s == NULL){
     printf("Client exits because of CTRL-D\n");
-    break;
+    exit(1);
   }
   int bytes = write(server_socket, buffer, 256);
+  if (bytes == -1){
+    err(server_socket, "write failed");
+  }
+
+  printf("Insert the coordinates you wish to place boat 2 in x y form: ");
+   s = fgets(buffer, sizeof(buffer), stdin);
+  if (s == NULL){
+    printf("Client exits because of CTRL-D\n");
+    exit(1);
+  }
+   bytes = write(server_socket, buffer, 256);
+  if (bytes == -1){
+    err(server_socket, "write failed");
+  }
+  printf("Welcome to the game player.\n");
+  printf("Insert the coordinates you wish to place boat 3 in x y form: ");
+   s = fgets(buffer, sizeof(buffer), stdin);
+  if (s == NULL){
+    printf("Client exits because of CTRL-D\n");
+    exit(1);
+  }
+bytes = write(server_socket, buffer, 256);
+  if (bytes == -1){
+    err(server_socket, "write failed");
+  }
+  while (1){
+  printf("Insert the coordinates you wish to check in x y form: ");
+   s = fgets(buffer, sizeof(buffer), stdin);
+  if (s == NULL){
+    printf("Client exits because of CTRL-D\n");
+    exit(1);
+  }
+  bytes = write(server_socket, buffer, 256);
   if (bytes == -1){
     err(server_socket, "write failed");
   }
@@ -136,7 +168,7 @@ void clientGameLogic(int server_socket){
   //int oppBoard[3][3];
 //  memcpy(myBoard, board[0], sizeof(board[0]));
   //memcpy(oppBoard, board[1], sizeof(board[1]));
-  printBoard(board[0], oppBoard[1], x, y);
+  printBoard(board[0], Board[1], x, y);
   }
 
 }
@@ -147,6 +179,5 @@ int main(int argc, char *argv[] ) {
     IP=argv[1];
   }
   int server_socket = client_tcp_handshake(IP);
-
-  clientLogic(server_socket);
+  clientGameLogic(server_socket);
 }
