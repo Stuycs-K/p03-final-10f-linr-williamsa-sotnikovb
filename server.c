@@ -29,6 +29,11 @@ int main(int argc, char *argv[] ) {
   //struct timeval tv;
   //tv.tv_sec = 2; // select function will continue every 2 sec
   remove("activeplayers.ussv");
+  int r_file = open("./userdata.ussv", O_CREAT | O_APPEND, 0666);
+  if (r_file == -1) {
+    perror("open");
+  }
+  close(r_file);
   FD_ZERO(&activemaster);
   FD_ZERO(&master);
   FD_ZERO(&read_fds);
@@ -132,7 +137,11 @@ int appendDB(struct usr * u)
   if (!temp)
   {
     int w_file = open("./userdata.ussv", O_WRONLY|O_APPEND, 0);
-    write(w_file, u, sizeof(struct usr));
+    int w = 0;
+    w = write(w_file, u, sizeof(struct usr));
+    if(w >= 0){
+      perror("write");
+    }
     close(w_file);
   }
   free(temp);
@@ -189,11 +198,11 @@ int searchSocket(char *unm)
   {
     if (!strcmp(out->name, unm))
     {
-      read(r_file, &socket, sizeof(int)+1);
+      read(r_file, &socket, sizeof(int));
       close(r_file);
       return socket;
     }
-    read(r_file, &socket, sizeof(int)+1);
+    read(r_file, &socket, sizeof(int));
   }
   close(r_file);
   return -1;
@@ -211,7 +220,7 @@ char* searchPlayer(int sock)
   struct usr * out = (struct usr *)calloc(1, sizeof(struct usr));
   while (read(r_file, out, sizeof(struct usr)))
   {
-    read(r_file, &socket, sizeof(int)+1);
+    read(r_file, &socket, sizeof(int));
     if (sock == socket)
     {
       close(r_file);
@@ -289,7 +298,7 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
         int a_file = open("./activeplayers.ussv", O_WRONLY|O_APPEND|O_CREAT, 0666);
         printf("afile %d\n", a_file);
         write(a_file, temp, sizeof(struct usr));
-        write(a_file, &s, sizeof(int)+1);
+        write(a_file, &s, sizeof(int));
         close(a_file);
         sendSig = CNFRM;
         send(s, &sendSig, sizeof(int), 0);
