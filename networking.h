@@ -32,7 +32,7 @@ struct match
     int socket2;
 };
 char* playerList();
-struct usr* searchPlayer(int sock);
+char* searchPlayer(int sock);
 int searchSocket(char *unm);
 int server_setup();
 int client_tcp_handshake(char*server_address);

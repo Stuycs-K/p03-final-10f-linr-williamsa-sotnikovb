@@ -4,7 +4,7 @@
 #define TRUE 1
 #define FALSE 0
 #define MAX_CLIENTS FD_SETSIZE
-#define MAX_NUMBOARDS 10
+#define MAX_NUMMATCHES 10
 #include <string.h>
 #include <errno.h>
 
@@ -23,6 +23,7 @@ When a client requests to play another client on the list, we must write to the 
 //main server code
 int main(int argc, char *argv[] ) {
   fd_set master;    // master file descriptor list
+  fd_set activemaster;
   fd_set read_fds;  // temp file descriptor list for select()
   int fdmax;        // maximum file descriptor number
   //struct timeval tv;
@@ -31,6 +32,7 @@ int main(int argc, char *argv[] ) {
   FD_ZERO(&activemaster);
   FD_ZERO(&master);
   FD_ZERO(&read_fds);
+  struct match * newmatch;
   int listen_socket = server_setup();
   struct match * matcharray[MAX_NUMMATCHES]; // may need to make sure this is null? and initialize?
   for (int m = 0; m < MAX_NUMMATCHES; m++) {
@@ -63,10 +65,10 @@ int main(int argc, char *argv[] ) {
         }
       }
     }
-    if(newboard != NULL){
-      for(int j = 0; j < MAX_NUMBOARDS; j++){
-        if(boardarray[j] != NULL){
-          boardarray[j] = newboard;
+    if(newmatch != NULL){
+      for(int j = 0; j < MAX_NUMMATCHES; j++){
+        if(matcharray[j] != NULL){
+          matcharray[j] = newmatch;
           break;
         }
       }
@@ -263,10 +265,6 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
     }
   }
   else{
-    buf[nbytes] = '\0';
-    if(/*conditions tba*/){
-      return matchlogic(socket1, socket2);
-    }
         // we got some data from a client
         // to implement how we handle this data
         // - if its a name of another client then we send request to that other client, should also send a "request sent" to first client
@@ -344,8 +342,8 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
       recv(s, unamebuff, 256, 0);
       recv(s, upwdbuff, 256, 0);
       struct usr * newAcc = (struct usr *)calloc(1, sizeof(struct usr));
-      newAcc->name = unamebuff;
-      newAcc->pwd = upwdbuff;
+      strcpy(unamebuff, newAcc->name);
+      strcpy(upwdbuff, newAcc->pwd);
       appendDB(newAcc);
       free(newAcc);
     }
@@ -359,24 +357,28 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
       send(s, getPlayers(), size, 0);
     }
   }
+  return NULL;
 }
 
-struct * board matchlogic(int socket1, int socket2){
+struct match * matchlogic(int socket1, int socket2){
   int subpid = fork();
   if(subpid == 0){
-    struct board * newboard = (struct board *) calloc(sizeof(board));
+    int x,y;
+    int bytes;
+    struct match * newboard = (struct match *) calloc(1, sizeof(struct match));
     newboard->pid = getpid();
     newboard->socket1 = socket1;
     newboard->socket2 = socket2;
     // index 0 of first array is personal, 1 is opp
     int board1[2][3][3] = {0};
     int board2[2][3][3] = {0};
+    char buffer[500];
     // on the board: 0 is blank, 1 is ur own ship, 2 is the ship got hit, -1 is someone guessed and miss
     // here add the initialization of the board and where the client want their ships to be. 3 Boats.
     for (int j = 0; j < 3; j++){
     bytes = read(socket1, buffer, sizeof(buffer));
     if (bytes == -1){
-      err(server_socket, "read failed");
+      perror("read");
     }
     sscanf(buffer, "%d %d", &x, &y);
     board1[0][x][y] = 1;
@@ -384,12 +386,11 @@ struct * board matchlogic(int socket1, int socket2){
   for (int j = 0; j < 3; j++){
   bytes = read(socket2, buffer, sizeof(buffer));
   if (bytes == -1){
-    err(server_socket, "read failed");
+    perror("read");
   }
   sscanf(buffer, "%d %d", &x, &y);
   board2[0][x][y] = 1;
 }
-    char buffer[256];
     while(1){ // loop of gameplay starts here
     // check for end of game here
     //board 1 check first
@@ -420,11 +421,11 @@ struct * board matchlogic(int socket1, int socket2){
 
     int bytes = read(socket1, buffer, sizeof(buffer));
     if (bytes == -1){
-      err(server_socket, "read failed");
+      perror("read");
     }
     bytes = write(socket2, buffer, sizeof(buffer));
     if (bytes == -1){
-      err(server_socket, "write failed");
+      perror("write");
     }
 
     //calculation of player1
@@ -442,11 +443,11 @@ struct * board matchlogic(int socket1, int socket2){
 
     bytes = read(socket2, buffer, sizeof(buffer));
     if (bytes == -1){
-      err(server_socket, "write failed");
+      perror("read");
     }
     bytes = write(socket1, buffer, sizeof(buffer));
     if (bytes == -1){
-      err(server_socket, "write failed");
+      perror("write");
     }
     // This massive block up here is just reading the guess each client chose and send the guess to their opponent.
     // Here make the calcuation of the board and send them back to the client. Player 2 here
@@ -464,18 +465,22 @@ struct * board matchlogic(int socket1, int socket2){
 
     bytes = write(socket1, board1, sizeof(board1));
     if (bytes == -1){
-      err(server_socket, "read failed");
+      perror("write");
     }
     // Board two calc Here
     bytes = write(socket2, board2, sizeof(board2));
     if (bytes == -1){
-      err(server_socket, "read failed");
+      perror("write");
     }
   }
 
   }
   else{
-    return subpid;
+    struct match * newboard = (struct match *) calloc(1, sizeof(struct match));
+    newboard->pid = getpid();
+    newboard->socket1 = socket1;
+    newboard->socket2 = socket2;
+    return newboard;
   }
 }
 
