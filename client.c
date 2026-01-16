@@ -84,7 +84,8 @@ void clientLogic(int server_socket){
   fdmax = listen_socket;
   read_fds = master;
   while(loggedin){
-    printf("Enter 1 to see who's online, or 2 to begin a game request. Do nothing to allow others to send you match requests. \n");
+    printf("%s\nWins: %d\nLosses: %d\n", self->name, self->wins, self->losses);
+    printf("1. View available players\n2. Connect to player\n3. View leaderboard\n4. Exit");
     char buf[5000];
     if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
       perror("select");
@@ -95,6 +96,22 @@ void clientLogic(int server_socket){
         printf("%d is set\n", i);
         if(i == STDIN){
           fgets(buf, 5000, stdin);
+          if (!strcmp(buf, "4\n")) exit(0);
+          else if (!strcmp(buf, "3\n"))
+          {
+            int sendSig = REQLDBRD;
+            send(server_socket, &sendSig, sizeof(int), 0);
+
+            int size = 0;
+            recv(server_socket, &size, sizeof(int));
+            struct usr * * players = (struct usr **)calloc(size, 1);
+            recv(server_socket, players, size);
+            printf("LEADERBOARD:\n\n");
+            for (size_t i = 0; i < size/sizeof(struct usr); i++)
+            {
+              printf("%d. %256s - %2d wins - %2d losses", i+1, players[i]->name, players[i]->wins, players[i]->losses);
+            }
+          }
           if(!strcmp(buf, "1\n")){
             int sendSig = REQPLYRS;
             send(server_socket, &sendSig, sizeof(int), 0);
@@ -125,28 +142,6 @@ void clientLogic(int server_socket){
       }
     }
     read_fds = master;
-    while(1)
-    {
-      printf("%s\nWins: %d\nLosses: %d\n", self->name, self->wins, self->losses);
-      printf("1. View available players\n2. Connect to player\n3. View leaderboard\n4. Exit");
-      fgets(buff, 256, stdin);
-      if (!strcmp(buff, "4\n")) exit(0);
-      else if (!strcmp(buff, "3\n"))
-      {
-        int sendSig = REQLDBRD;
-        send(server_socket, &sendSig, sizeof(int), 0);
-
-        int size = 0;
-        recv(server_socket, &size, sizeof(int));
-        struct usr * * players = (struct usr **)calloc(size, 1);
-        recv(server_socket, players, size);
-        printf("LEADERBOARD:\n\n");
-        for (size_t i = 0; i < size/sizeof(struct usr); i++)
-        {
-          printf("%d. %256s - %2d wins - %2d losses", i+1, players[i]->name, players[i]->wins, players[i]->losses);
-        }
-      }
-  }
 }
 
 void printBoard(int myBoard[3][3], int oppBoard[3][3], int x, int y){
