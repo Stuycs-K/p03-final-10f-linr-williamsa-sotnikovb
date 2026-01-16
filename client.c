@@ -169,7 +169,7 @@ void clientGameLogic(int server_socket){
   //int oppBoard[3][3];
 //  memcpy(myBoard, board[0], sizeof(board[0]));
   //memcpy(oppBoard, board[1], sizeof(board[1]));
-  printBoard(board[0], Board[1], x, y);
+  printBoard(board[0], board[1], x, y);
   }
 
 }
