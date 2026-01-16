@@ -91,9 +91,9 @@ int main(int argc, char *argv[] ) {
   }
 }
 
-int compareUsrs(struct usr * u1, struct usr * u2)
+int compareUsrs(const void * u1, const void * u2)
 {
-  return strcmp(u1->name, u2->name);
+  return strcmp(((const struct usr *)u1)->name, ((const struct usr *)u2)->name);
 }
 
 struct usr * * getPlayers()
@@ -104,10 +104,12 @@ struct usr * * getPlayers()
     close(r_file);
     return NULL;
   }
-  fseek(r_file, 0, SEEK_END);
-  int size = ftell(r_file);
+
+  FILE* fp = fopen("./userdata.ussv", "r");
+  fseek(fp, 0, SEEK_END);
+  int size = ftell(fp);
   size/=sizeof(struct usr);
-  fseek(r_file, 0, SEEK_SET);
+  fseek(fp, 0, SEEK_SET);
   struct usr * * out = (struct usr * *)calloc(size, sizeof(struct usr));
   for (int i = 0; i < size; i++)
   {
@@ -367,15 +369,9 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
     }
     else if (cliSig==REQLDBRD)
     {
-      int r_file = open("./userdata.ussv", O_RDONLY, 0)
-      if (r_file == -1)
-      {
-        close(r_file);
-        return NULL;
-      }
-      fseek(r_file, 0, SEEK_END);
-      int size = ftell(r_file);
-      close(r_file);
+      FILE* fp = fopen("./userdata.ussv", "r");
+      fseek(fp, 0, SEEK_END);
+      int size = ftell(fp);
 
       send(s, &size, sizeof(int), 0);
       send(s, getPlayers(), size, 0);
