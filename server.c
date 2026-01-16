@@ -36,15 +36,16 @@ int main(int argc, char *argv[] ) {
   int listen_socket = server_setup();
   struct match * matcharray[MAX_NUMMATCHES]; // may need to make sure this is null? and initialize?
   for (int m = 0; m < MAX_NUMMATCHES; m++) {
-    matcharray[m] = calloc(1, sizeof *matcharray[m]);
-}
+    matcharray[m] = (struct match *) calloc(1, sizeof *matcharray[m]);
+  }
   //add listen_socket to the set
   FD_SET(listen_socket, &master);
+  activemaster = master;
   fdmax = listen_socket;
   while(1){ //main loop
     read_fds = master;
     int retval = 0;
-    struct board * newboard = NULL;
+    struct match * newmatch = NULL;
     if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
       perror("select");
       exit(0);
@@ -176,7 +177,7 @@ struct usr * searchDB(char *unm, char *pwd)
 
 int searchSocket(char *unm)
 {
-  int r_file = open("./userdata.ussv", O_RDONLY, 0);
+  int r_file = open("./activeplayers.ussv", O_RDONLY, 0);
   int socket = -1;
   if (r_file == -1)
   {
@@ -200,7 +201,7 @@ int searchSocket(char *unm)
 
 char* searchPlayer(int sock)
 {
-  int r_file = open("./userdata.ussv", O_RDONLY, 0);
+  int r_file = open("./activeplayers.ussv", O_RDONLY, 0);
   int socket = -1;
   if (r_file == -1)
   {
@@ -285,7 +286,7 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
       }
       else
       {
-        int a_file = open("./activeplayers.ussv", O_WRONLY|O_APPEND|O_CREAT, 0);
+        int a_file = open("./activeplayers.ussv", O_WRONLY|O_APPEND|O_CREAT, 0666);
         printf("afile %d\n", a_file);
         write(a_file, temp, sizeof(struct usr));
         write(a_file, &s, sizeof(int)+1);
@@ -304,34 +305,35 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
     }
     if (cliSig==REQMATCH){
       char opponent[256];
-      recv(s, opponent, 256, 0);
+      recv(s, opponent, sizeof(int), 0);
       int oppsocket = searchSocket(opponent);
-      if(oppsocket <= 0){
+      printf("oppsocket:%d\n", oppsocket);
+      if(opponent <= 0){
         int sendSig = DENY;
         send(s, &sendSig, sizeof(int), 0);
       }
       else{
         int sendSig = WAITONRESPONSE;
         send(s, &sendSig, sizeof(int), 0);
-        char out[5000];
-        sprintf(out, "Player %s would like to play you in a match", searchPlayer(s));
+
         int oppSig = REQMATCH;
         send(oppsocket, &oppSig, sizeof(oppSig), 0);
-        send(oppsocket, searchPlayer(s), sizeof(searchPlayer(s)), 0);
+        send(oppsocket, &s, sizeof(s), 0);
       }
     }
     if(cliSig==ACCMATCH){
-      char opponent[256];
-      recv(s, opponent, 256, 0);
-      int oppsocket = searchSocket(opponent);
-      matchlogic(s, oppsocket);
+      int opponent = 0;
+      int sendSig = STARTMATCH;
+      recv(s, &opponent, sizeof(int), 0);
+      send(s, &sendSig, sizeof(int), 0);
+      send(opponent, &sendSig, sizeof(int), 0);
+      matchlogic(s, opponent);
     }
     if(cliSig==DENYMATCH){
-      char opponent[256];
-      recv(s, opponent, 256, 0);
-      int oppsocket = searchSocket(opponent);
+      int opponent = 0;
+      recv(s, &opponent, sizeof(int), 0);
       int oppSig = DENYMATCH;
-      send(oppsocket, &oppSig, sizeof(oppSig), 0);
+      send(opponent, &oppSig, sizeof(oppSig), 0);
     }
     else if (cliSig==REQRGST)
     {
