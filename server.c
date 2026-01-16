@@ -92,6 +92,11 @@ int main(int argc, char *argv[] ) {
   }
 }
 
+int compareUsrs(struct usr * u1, struct usr * u2)
+{
+  return strcmp(u1->name, u2->name);
+}
+
 struct usr * * getPlayers()
 {
   int r_file = open("./userdata.ussv", O_RDONLY, 0)
@@ -108,7 +113,9 @@ struct usr * * getPlayers()
   for (int i = 0; i < size; i++)
   {
     read(r_file, out[i], sizeof(struct usr));
+    strcpy(out[i]->pwd, "");
   }
+  qsort(out, size, sizeof(struct usr), compareUsrs);
   close(r_file);
   return out;
 }
@@ -248,7 +255,18 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
     }
     else if (cliSig==REQLDBRD)
     {
+      int r_file = open("./userdata.ussv", O_RDONLY, 0)
+      if (r_file == -1)
+      {
+        close(r_file);
+        return NULL;
+      }
+      fseek(r_file, 0, SEEK_END);
+      int size = ftell(r_file);
+      close(r_file);
 
+      send(s, &size, sizeof(int), 0);
+      send(s, getPlayers(), size, 0);
     }
   }
   return NULL; //perhaps bad practice

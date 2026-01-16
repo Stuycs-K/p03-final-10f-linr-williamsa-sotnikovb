@@ -78,13 +78,23 @@ void clientLogic(int server_socket){
   while(1)
   {
     printf("%s\nWins: %d\nLosses: %d\n", self->name, self->wins, self->losses);
-    printf("1. View available players\n2. View leaderboard\n3. Exit");
+    printf("1. View available players\n2. Connect to player\n3. View leaderboard\n4. Exit");
     fgets(buff, 256, stdin);
-    if (!strcmp(buff, "3\n")) exit(0);
-    else if (!strcmp(buff, "2\n"))
+    if (!strcmp(buff, "4\n")) exit(0);
+    else if (!strcmp(buff, "3\n"))
     {
       int sendSig = REQLDBRD;
       send(server_socket, &sendSig, sizeof(int), 0);
+
+      int size = 0;
+      recv(server_socket, &size, sizeof(int));
+      struct usr * * players = (struct usr **)calloc(size, 1);
+      recv(server_socket, players, size);
+      printf("LEADERBOARD:\n\n");
+      for (size_t i = 0; i < size/sizeof(struct usr); i++)
+      {
+        printf("%d. %256s - %2d wins - %2d losses", i+1, players[i]->name, players[i]->wins, players[i]->losses);
+      }
     }
   }
 }
