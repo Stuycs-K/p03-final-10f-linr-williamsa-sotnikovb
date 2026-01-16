@@ -12,4 +12,5 @@
 #define ACCMATCH 109
 #define DENYMATCH 110
 #define WAITONRESPONSE 111
+#define STARTMATCH 112
 #endif

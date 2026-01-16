@@ -173,7 +173,7 @@ struct usr * searchDB(char *unm, char *pwd)
 
 int searchSocket(char *unm)
 {
-  int r_file = open("./userdata.ussv", O_RDONLY, 0);
+  int r_file = open("./activeplayers.ussv", O_RDONLY, 0);
   int socket = -1;
   if (r_file == -1)
   {
@@ -195,26 +195,28 @@ int searchSocket(char *unm)
   return -1;
 }
 
-char* searchPlayer(int sock)
+struct usr* searchPlayer(int sock)
 {
-  int r_file = open("./userdata.ussv", O_RDONLY, 0);
+  int r_file = open("./activeplayers.ussv", O_RDONLY, 0);
   int socket = -1;
   if (r_file == -1)
   {
-    close(r_file);
+    perror("open");
     return NULL;
   }
   struct usr * out = (struct usr *)calloc(1, sizeof(struct usr));
   while (read(r_file, out, sizeof(struct usr)))
   {
-    read(r_file, &socket, sizeof(int)+1);
+    read(r_file, &socket, sizeof(int));
+    printf("socket: %d\n", socket);
     if (sock == socket)
     {
       close(r_file);
-      return out->name;
+      return out;
     }
   }
   close(r_file);
+  printf("hereya\n");
   return NULL;
 }
 
@@ -280,6 +282,9 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
           }
         }
       }
+      int sendSig = STARTMATCH;
+      send(s, &sendSig, sizeof(int), 0);
+      send(socket2, &sendSig, sizeof(int), 0);
       // remember to block on both ports on main
       return matchlogic(s, socket2);
     }
@@ -303,7 +308,11 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
       }
       else
       {
-        int a_file = open("./activeplayers.ussv", O_WRONLY|O_APPEND|O_CREAT, 0);
+        int a_file = open("./activeplayers.ussv", O_WRONLY|O_APPEND|O_CREAT, 0666);
+        if (a_file == -1) {
+          perror("open");
+          return NULL;
+        }
         printf("afile %d\n", a_file);
         write(a_file, temp, sizeof(struct usr));
         write(a_file, &s, sizeof(int)+1);
@@ -324,6 +333,7 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
       char opponent[256];
       recv(s, opponent, 256, 0);
       int oppsocket = searchSocket(opponent);
+      printf("oppsocket:%d\n", oppsocket);
       if(oppsocket <= 0){
         int sendSig = DENY;
         send(s, &sendSig, sizeof(int), 0);
@@ -331,25 +341,30 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
       else{
         int sendSig = WAITONRESPONSE;
         send(s, &sendSig, sizeof(int), 0);
-        char out[5000];
-        sprintf(out, "Player %s would like to play you in a match", searchPlayer(s));
+        //char *pname = searchPlayer(s)->name;
+
+        //printf("print string %s\n", pname);
+        //printf("print anything\n");
+        //char out[5000];
+        //sprintf(out, "Player %s would like to play you in a match", searchPlayer(s)->name);
+        //out[4999] = '\0';
+        //printf("%s\n", out);
         int oppSig = REQMATCH;
         send(oppsocket, &oppSig, sizeof(oppSig), 0);
-        send(oppsocket, searchPlayer(s), sizeof(searchPlayer(s)), 0);
+        send(oppsocket, &s, sizeof(s),0);
+        //send(oppsocket, searchPlayer(s)->name, sizeof(searchPlayer(s)->name), 0);
       }
     }
     if(cliSig==ACCMATCH){
-      char opponent[256];
-      recv(s, opponent, 256, 0);
-      int oppsocket = searchSocket(opponent);
-      matchlogic(s, oppsocket);
+      int opponent = 0;
+      recv(s, &opponent, sizeof(int), 0);
+      matchlogic(s, opponent);
     }
     if(cliSig==DENYMATCH){
-      char opponent[256];
-      recv(s, opponent, 256, 0);
-      int oppsocket = searchSocket(opponent);
+      int opponent = 0;
+      recv(s, &opponent, sizeof(int), 0);
       int oppSig = DENYMATCH;
-      send(oppsocket, &oppSig, sizeof(oppSig), 0);
+      send(opponent, &oppSig, sizeof(oppSig), 0);
     }
     else if (cliSig==REQRGST)
     {
@@ -384,6 +399,7 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
 // when match terminates, it will return the score and then main server will unblock from those sockets
 // on main server it just returns the information the main server will need so that it can pair up
 struct match * matchlogic(int socket1, int socket2){
+  printf("matchstart\n");
   int subpid = fork();
   if(subpid == 0){//in child/match
     fd_set match_fds;

@@ -74,8 +74,6 @@ void clientLogic(int server_socket){
       }
     }
   }
-  printf("%s\nWins: %d\nLosses: %d\n", self->name, self->wins, self->losses);
-  printf("1. View available players\n2. Connect to player\n3. View leaderboard\n4. Exit\n");
   fd_set master;
   fd_set read_fds;
   int fdmax;
@@ -86,6 +84,8 @@ void clientLogic(int server_socket){
   fdmax = server_socket;
   read_fds = master;
   while(loggedin){
+    printf("%s\nWins: %d\nLosses: %d\n", self->name, self->wins, self->losses);
+    printf("1. View available players\n2. Connect to player\n3. View leaderboard\n4. Exit\n");
     char buf[5000];
     if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
       perror("select");
@@ -137,26 +137,29 @@ void clientLogic(int server_socket){
         }
         if(i == server_socket){
           int serverSig = 0;
+          int opponent = 0;
           recv(server_socket, &serverSig, sizeof(int), 0);
-          recv(server_socket, &buf, sizeof(buf), 0);
-          printf("b");
           if(serverSig == REQMATCH){
+            recv(server_socket, &opponent, sizeof(int), 0);
             char buf2[256];
-            printf("%s would like to play a match with you. Press 1 to accept, 2 to deny\n", buf);
+            printf("You have a match request. Press 1 to accept, 2 to deny\n");
             fgets(buf2, sizeof(buf2), stdin);
-            if(!strcmp(buf, "1\n")){
+            if(!strcmp(buf2, "1\n")){
               int cliSig = ACCMATCH;
               send(server_socket, &cliSig, sizeof(int), 0);
-              send(server_socket, buf, sizeof(buf), 0);
+              send(server_socket, &opponent, sizeof(opponent), 0);
           }
-            if(!strcmp(buf, "2\n")){
+            if(!strcmp(buf2, "2\n")){
               int cliSig = DENYMATCH;
               send(server_socket, &cliSig, sizeof(int), 0);
-              send(server_socket, buf, sizeof(buf), 0);
+              send(server_socket, &opponent, sizeof(opponent), 0);
             }
-        }
+          }
+          if(serverSig == STARTMATCH){
+            printf("REQUEST ACCEPTED MATCH STARTING\n");
+          }
         if(serverSig == DENYMATCH){
-          printf("request to match was denied");
+          printf("request to match was denied\n");
         }
       }
     }
