@@ -1,7 +1,7 @@
 #include "networking.h"
 #include "CommDefs.h"
 #include "networking.h"
-
+#define STDIN 0
 void clientLogic(int server_socket){
   printf("Welcome to Battleship 3000\n");
   char loggedin = 0;
@@ -68,32 +68,58 @@ void clientLogic(int server_socket){
       }
     }
   }
+  fd_set master;
+  fd_set read_fds;
+  int fdmax;
+  FD_ZERO(&master);
+  FD_ZERO(&read_fds);
+  FD_SET(listen_socket, &master);
+  FD_SET(STDIN, &master);
+  fdmax = listen_socket;
+  read_fds = master;
   while(loggedin){
-    printf("Enter 1 to see who's online, or 2 to begin a game request\n");
+    printf("Enter 1 to see who's online, or 2 to begin a game request. Do nothing to allow others to send you match requests. \n");
     char buf[5000];
-    fgets(buf, 5000, stdin);
-    if(!strcmp(buf, "1\n")){
-      int sendSig = REQPLYRS;
-      send(server_socket, &sendSig, sizeof(int), 0);
-      recv(server_socket, buf, sizeof(buf), 0);
-      printf("players online:\n");
-      printf("%s",buf);
+    if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
+      perror("select");
+      exit(0);
     }
-    if(!strcmp(buf, "2\n")){
-      int sendSig = REQMATCH;
-      send(server_socket, &sendSig, sizeof(int), 0);
-      int response = 0;
-      recv(server_socket, &response, sizeof(buf), 0);
-      if(response == 1){
-
-      }
-      else{
-        printf("request denied :( \n");
+    for(int i = 0; i <= fdmax; i++){
+      if(FD_ISSET(i, &read_fds)) {
+        printf("%d is set\n", i);
+        if(i == STDIN){
+          fgets(buf, 5000, stdin);
+          if(!strcmp(buf, "1\n")){
+            int sendSig = REQPLYRS;
+            send(server_socket, &sendSig, sizeof(int), 0);
+            recv(server_socket, buf, sizeof(buf), 0);
+            printf("players online:\n");
+            printf("%s",buf);
+          }
+          if(!strcmp(buf, "2\n")){
+            int sendSig = REQMATCH;
+            printf("Who would you like to play?\n");
+            fgets(buf, 5000, stdin);
+            send(server_socket, &sendSig, sizeof(int), 0);
+            send(server_socket, buf, sizeof(int), 0);
+            int response = 0;
+            recv(server_socket, &response, sizeof(buf), 0);
+            if(WAITONRESPONSE == response){
+              printf("request sent...\n");
+            }
+            else{
+              printf("request denied :( \n");
+            }
+          }
+        }
+        if(i == LISTEN_SOCKET){
+          recv(listen_socket, buf, sizeof(buf), 0);
+          printf("%s\n", buf);
+        }
       }
     }
+    read_fds = master;
   }
-
-
 }
 
 void printBoard(int myBoard[3][3], int oppBoard[3][3], int x, int y){

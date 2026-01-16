@@ -149,7 +149,7 @@ int searchSocket(char *unm)
   if (r_file == -1)
   {
     close(r_file);
-    return NULL;
+    return -1;
   }
   struct usr * out = (struct usr *)calloc(1, sizeof(struct usr));
   while (read(r_file, out, sizeof(struct usr)))
@@ -296,16 +296,20 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
       recv(s, opponent, 256, 0);
       int oppsocket = searchSocket(opponent);
       if(oppsocket <= 0){
-        sendSig = DENY;
+        int sendSig = DENY;
         send(s, &sendSig, sizeof(int), 0);
       }
       else{
-        sendSig = WAITONRESPONSE;
+        int sendSig = WAITONRESPONSE;
         send(s, &sendSig, sizeof(int), 0);
-        char out[256];
-        sprintf(out, "Player &s would like to play you in a match", searchUser(s));
+        char out[5000];
+        sprintf(out, "Player %s would like to play you in a match", searchPlayer(s));
+        int oppSig = REQMATCH;
+        send(oppsocket, &oppSig, sizeof(oppSig), 0);
+        send(oppsocket, searchPlayer(s), sizeof(searchPlayer(s)), 0);
       }
     }
+    if(cliSig,)
     else if (cliSig==REQRGST)
     {
       int sendSig = ACCRGST;
