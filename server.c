@@ -29,12 +29,14 @@ int main(int argc, char *argv[] ) {
   FD_ZERO(&read_fds);
   int listen_socket = server_setup();
   struct match * matcharray[MAX_NUMMATCHES]; // may need to make sure this is null? and initialize?
+  for (int m = 0; m < MAX_NUMMATCHES; m++) {
+    matcharray[m] = calloc(1, sizeof *matcharray[m]);
+}
   //add listen_socket to the set
   FD_SET(listen_socket, &master);
   fdmax = listen_socket;
   activemaster = master;
   while(1){ //main loop
-    printf("4\n");
     read_fds = activemaster;
     int retval = 0;
     struct match * newmatch = NULL;
@@ -47,9 +49,7 @@ int main(int argc, char *argv[] ) {
         printf("%d is set\n", i);
         if(i == listen_socket){
           handle_new_connection(i, &activemaster, &fdmax);
-          printf("1\n");
           master = activemaster;
-          printf("2\n");
         }
         else{
           printf("3\n");
@@ -59,11 +59,8 @@ int main(int argc, char *argv[] ) {
             FD_CLR(newmatch->socket2, &activemaster);
           }
         }
-        printf("6\n");
       }
-      printf("5\n");
     }
-    printf("7\n");
     if(newmatch != NULL){
       for(int j = 0; j < MAX_NUMMATCHES; j++){
         if(matcharray[j] != NULL){
@@ -72,17 +69,14 @@ int main(int argc, char *argv[] ) {
         }
       }
     }
-    printf("8\n");
     for(int k = 0; k < MAX_NUMMATCHES; k++){
-      printf("12\n");
+      if(matcharray[k]->pid != 0){
+        printf("%d\n", matcharray[k]->pid);
       retval = 0; // retval should give either the winner's socket or if one exited - but how would it tell which one?
       int matchpid = 0;
-      printf("9\n");
       matchpid = waitpid(matcharray[k]->pid, &retval, WNOHANG);
-      printf("10\n");
       //needs to unblock from sockets - may need to for loop?
       if(retval != 0){
-        printf("11\n");
         for(int l = 0; l < MAX_NUMMATCHES; l++){
           if(matchpid == matcharray[l]->pid){
             FD_SET(matcharray[l]->socket1, &activemaster);
@@ -94,7 +88,7 @@ int main(int argc, char *argv[] ) {
       }
       matcharray[k] = NULL;
     }
-    printf("9\n");
+    }
   }
 }
 
