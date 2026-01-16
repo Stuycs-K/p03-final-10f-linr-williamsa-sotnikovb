@@ -240,6 +240,7 @@ struct * board matchlogic(int socket1, int socket2){
       printf("Board 2 won the game\n");
       exit(1);
     }
+
     int bytes = read(socket1, buffer, sizeof(buffer));
     if (bytes == -1){
       err(server_socket, "read failed");
@@ -248,6 +249,20 @@ struct * board matchlogic(int socket1, int socket2){
     if (bytes == -1){
       err(server_socket, "write failed");
     }
+
+    //calculation of player1
+    int h;
+    int p;
+    sscanf(buffer, "%d %d", &h, &p);
+    if (board2[0][h][p] == 1){
+      board1[1][h][p] = 2;
+      board2[0][h][p] = 2;
+    }
+    else{
+      board1[1][h][p] = -1;
+      board2[0][h][p] = -1;
+    }
+
     bytes = read(socket2, buffer, sizeof(buffer));
     if (bytes == -1){
       err(server_socket, "write failed");
@@ -257,7 +272,19 @@ struct * board matchlogic(int socket1, int socket2){
       err(server_socket, "write failed");
     }
     // This massive block up here is just reading the guess each client chose and send the guess to their opponent.
-    // Here make the calcuation of the board and send them back to the client. Board 1 here
+    // Here make the calcuation of the board and send them back to the client. Player 2 here
+
+    sscanf(buffer, "%d %d", &h, &p);
+    if (board1[0][h][p] == 1){
+      board2[1][h][p] = 2;
+      board1[0][h][p] = 2;
+    }
+    else{
+      board2[1][h][p] = -1;
+      board1[0][h][p] = -1;
+    }
+
+
     bytes = write(socket1, board, sizeof(board));
     if (bytes == -1){
       err(server_socket, "read failed");
