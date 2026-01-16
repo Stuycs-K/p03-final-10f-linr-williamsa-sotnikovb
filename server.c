@@ -398,43 +398,121 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
 
 // when match terminates, it will return the score and then main server will unblock from those sockets
 // on main server it just returns the information the main server will need so that it can pair up
-struct match * matchlogic(int socket1, int socket2){
-  printf("matchstart\n");
+struct * board matchlogic(int socket1, int socket2){
   int subpid = fork();
-  if(subpid == 0){//in child/match
-    fd_set match_fds;
-    int maxfd = 0;
-    int winner = 0;
-    while(1){
-      FD_ZERO(&match_fds);
-      FD_SET(socket1, &match_fds);
-      FD_SET(socket2, &match_fds);
-      maxfd = (double) fmax((double) socket1, (double)socket2)+1;
-      if(select(maxfd+1,&match_fds, NULL, NULL, NULL) == -1){
-        perror("select");
-        exit(255);
-      }
-      if(FD_ISSET(socket1, &match_fds)){
-        //read and send however that is to be done
-        //should break loop if someone wins
-      }
-      if (FD_ISSET(socket2, &match_fds)) {
-        }
+  if(subpid == 0){
+    struct board * newboard = (struct board *) calloc(sizeof(board));
+    newboard->pid = getpid();
+    newboard->socket1 = socket1;
+    newboard->socket2 = socket2;
+    // index 0 of first array is personal, 1 is opp
+    int board1[2][3][3] = {0};
+    int board2[2][3][3] = {0};
+    // on the board: 0 is blank, 1 is ur own ship, 2 is the ship got hit, -1 is someone guessed and miss
+    // here add the initialization of the board and where the client want their ships to be. 3 Boats.
+    for (int j = 0; j < 3; j++){
+    bytes = read(socket1, buffer, sizeof(buffer));
+    if (bytes == -1){
+      err(server_socket, "read failed");
     }
-    if(winner != 0){
-      exit(winner);
+    sscanf(buffer, "%d %d", &x, &y);
+    board1[0][x][y] = 1;
+  }
+  for (int j = 0; j < 3; j++){
+  bytes = read(socket2, buffer, sizeof(buffer));
+  if (bytes == -1){
+    err(server_socket, "read failed");
+  }
+  sscanf(buffer, "%d %d", &x, &y);
+  board2[0][x][y] = 1;
+}
+    char buffer[256];
+    while(1){ // loop of gameplay starts here
+    // check for end of game here
+    //board 1 check first
+    int count = 0;
+    for (int i = 0; i < 3; i++){
+      for (int e = 0; e < 3; e++){
+        if (board1[0][i][e] == 2){
+          count++;
+        }
+      }
+    }
+    if (count == 3){
+      printf("Board 1 won the game\n");
+      exit(1);
+    }
+    count = 0;
+    for (int i = 0; i < 3; i++){
+      for (int e = 0; e < 3; e++){
+        if (board2[0][i][e] == 2){
+          count++;
+        }
+      }
+    }
+    if (count == 3){
+      printf("Board 2 won the game\n");
+      exit(1);
+    }
+
+    int bytes = read(socket1, buffer, sizeof(buffer));
+    if (bytes == -1){
+      err(server_socket, "read failed");
+    }
+    bytes = write(socket2, buffer, sizeof(buffer));
+    if (bytes == -1){
+      err(server_socket, "write failed");
+    }
+
+    //calculation of player1
+    int h;
+    int p;
+    sscanf(buffer, "%d %d", &h, &p);
+    if (board2[0][h][p] == 1){
+      board1[1][h][p] = 2;
+      board2[0][h][p] = 2;
     }
     else{
-      printf("match server error - loop exited improperly\n");
-      exit(-1);
+      board1[1][h][p] = -1;
+      board2[0][h][p] = -1;
+    }
+
+    bytes = read(socket2, buffer, sizeof(buffer));
+    if (bytes == -1){
+      err(server_socket, "write failed");
+    }
+    bytes = write(socket1, buffer, sizeof(buffer));
+    if (bytes == -1){
+      err(server_socket, "write failed");
+    }
+    // This massive block up here is just reading the guess each client chose and send the guess to their opponent.
+    // Here make the calcuation of the board and send them back to the client. Player 2 here
+
+    sscanf(buffer, "%d %d", &h, &p);
+    if (board1[0][h][p] == 1){
+      board2[1][h][p] = 2;
+      board1[0][h][p] = 2;
+    }
+    else{
+      board2[1][h][p] = -1;
+      board1[0][h][p] = -1;
+    }
+
+
+    bytes = write(socket1, board, sizeof(board));
+    if (bytes == -1){
+      err(server_socket, "read failed");
+    }
+    // Board two calc Here
+    bytes = write(socket2, board, sizeof(board));
+    if (bytes == -1){
+      err(server_socket, "read failed");
     }
   }
+
+  }
   else{
-    struct match * newmatch = (struct match *) calloc(1,sizeof(struct match));
-    newmatch->pid = subpid;
-    newmatch->socket1 = socket1;
-    newmatch->socket2 = socket2;
-    return newmatch;
+    return subpid;
   }
 }
 
