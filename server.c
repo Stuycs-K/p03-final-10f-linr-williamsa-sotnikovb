@@ -342,7 +342,7 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
       char opponent[256];
       recv(s, opponent, 256, 0);
       int oppsocket = searchSocket(opponent);
-      matchlogic(s, opponent);
+      matchlogic(s, oppsocket);
     }
     if(cliSig==DENYMATCH){
       char opponent[256];

@@ -21,8 +21,8 @@ void clientLogic(int server_socket){
         fgets(uname, 256, stdin);
         printf("Please enter a password\n");
         fgets(upwd, 256, stdin);
-        uname[strlen(uname)-1] = NULL;
-        upwd[strlen(upwd)-1] = NULL;
+        uname[strlen(uname)-1] = '\0';
+        upwd[strlen(upwd)-1] = '\0';
 
         int sendSig = REQRGST;
         send(server_socket, &sendSig, sizeof(int), 0);
@@ -103,9 +103,9 @@ void clientLogic(int server_socket){
             send(server_socket, &sendSig, sizeof(int), 0);
 
             int size = 0;
-            recv(server_socket, &size, sizeof(int));
+            recv(server_socket, &size, sizeof(int), 0);
             struct usr * * players = (struct usr **)calloc(size, 1);
-            recv(server_socket, players, size);
+            recv(server_socket, players, size, 0);
             printf("LEADERBOARD:\n\n");
             for (size_t i = 0; i < size/sizeof(struct usr); i++)
             {
@@ -135,13 +135,13 @@ void clientLogic(int server_socket){
             }
           }
         }
-        if(i == LISTEN_SOCKET){
+        if(i == server_socket){
           int serverSig = 0;
-          recv(server_socket, serverSig, sizeof(int), 0);
-          recv(server_socket, buf, sizeof(buf), 0);
+          recv(server_socket, &serverSig, sizeof(int), 0);
+          recv(server_socket, &buf, sizeof(buf), 0);
           printf("b");
           if(serverSig == REQMATCH){
-            char buf2[256]
+            char buf2[256];
             printf("%s would like to play a match with you. Press 1 to accept, 2 to deny\n", buf);
             fgets(buf2, sizeof(buf2), stdin);
             if(!strcmp(buf, "1\n")){
@@ -162,7 +162,8 @@ void clientLogic(int server_socket){
     }
     read_fds = master;
 }
-
+}
+}
 void printBoard(int myBoard[3][3], int oppBoard[3][3], int x, int y){
   printf("Opponent guessed (%d, %d)\n", x, y);
   printf("Your Board: \n");
@@ -232,7 +233,7 @@ void clientGameLogic(int server_socket){
 
 }
 
-int main(int argc, char *argv[] ) {
+int main(int argc, char *argv[]){
   char* IP = "127.0.0.1";
   if(argc>1){
     IP=argv[1];
