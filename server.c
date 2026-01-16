@@ -29,6 +29,9 @@ int main(int argc, char *argv[] ) {
   FD_ZERO(&read_fds);
   int listen_socket = server_setup();
   struct match * matcharray[MAX_NUMMATCHES]; // may need to make sure this is null? and initialize?
+  for (int m = 0; m < MAX_NUMMATCHES; m++) {
+    matcharray[m] = calloc(1, sizeof *matcharray[m]);
+}
   //add listen_socket to the set
   FD_SET(listen_socket, &master);
   fdmax = listen_socket;
@@ -39,15 +42,17 @@ int main(int argc, char *argv[] ) {
     struct match * newmatch = NULL;
     if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
       perror("select");
-      exit(16);
+      exit(0);
     }
     for(int i = 0; i <= fdmax; i++){
       if(FD_ISSET(i, &read_fds)) {
+        printf("%d is set\n", i);
         if(i == listen_socket){
           handle_new_connection(i, &activemaster, &fdmax);
           master = activemaster;
         }
         else{
+          printf("3\n");
           newmatch = handle_client_data(i, listen_socket, &activemaster, &fdmax);
           if(newmatch != NULL){
             FD_CLR(newmatch->socket1, &activemaster);
@@ -65,8 +70,11 @@ int main(int argc, char *argv[] ) {
       }
     }
     for(int k = 0; k < MAX_NUMMATCHES; k++){
+      if(matcharray[k]->pid != 0){
+        printf("%d\n", matcharray[k]->pid);
       retval = 0; // retval should give either the winner's socket or if one exited - but how would it tell which one?
-      int matchpid = waitpid(matcharray[k]->pid, &retval, WNOHANG);
+      int matchpid = 0;
+      matchpid = waitpid(matcharray[k]->pid, &retval, WNOHANG);
       //needs to unblock from sockets - may need to for loop?
       if(retval != 0){
         for(int l = 0; l < MAX_NUMMATCHES; l++){
@@ -80,12 +88,29 @@ int main(int argc, char *argv[] ) {
       }
       matcharray[k] = NULL;
     }
+    }
   }
 }
 
-struct usr * getPlayers()
+struct usr * * getPlayers()
 {
-  
+  int r_file = open("./userdata.ussv", O_RDONLY, 0)
+  if (r_file == -1)
+  {
+    close(r_file);
+    return NULL;
+  }
+  fseek(r_file, 0, SEEK_END);
+  int size = ftell(r_file);
+  size/=sizeof(struct usr);
+  fseek(r_file, 0, SEEK_SET);
+  struct usr * * out = (struct usr * *)calloc(size, sizeof(struct usr));
+  for (int i = 0; i < size; i++)
+  {
+    read(r_file, out[i], sizeof(struct usr));
+  }
+  close(r_file);
+  return out;
 }
 
 int appendDB(struct usr * u)
@@ -274,7 +299,7 @@ struct match * matchlogic(int socket1, int socket2){
 
 
 
-/*straight BEEJ's code for converting a socket into an IP address string
+/*straight BEEJ's code for converting a socket into an IP address striprintfng
 //this is just - for the moment at least - for being able to bug test and tell who's who
 const char *inet_ntop2(void *addr, char *buf, size_t size){
   struct sockaddr_storage *sas = addr;
