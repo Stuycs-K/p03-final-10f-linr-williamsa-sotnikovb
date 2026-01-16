@@ -11,4 +11,5 @@
 #define REQMATCH 108
 #define ACCMATCH 109
 #define DENYMATCH 110
+#define WAITONRESPONSE 111
 #endif

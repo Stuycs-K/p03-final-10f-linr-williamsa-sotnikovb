@@ -76,7 +76,7 @@ void clientLogic(int server_socket){
       int sendSig = REQPLYRS;
       send(server_socket, &sendSig, sizeof(int), 0);
       recv(server_socket, buf, sizeof(buf), 0);
-      printf("players online:");
+      printf("players online:\n");
       printf("%s",buf);
     }
     if(!strcmp(buf, "2\n")){
@@ -85,7 +85,7 @@ void clientLogic(int server_socket){
       int response = 0;
       recv(server_socket, &response, sizeof(buf), 0);
       if(response == 1){
-        
+
       }
       else{
         printf("request denied :( \n");

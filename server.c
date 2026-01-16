@@ -24,6 +24,7 @@ int main(int argc, char *argv[] ) {
   int fdmax;        // maximum file descriptor number
   //struct timeval tv;
   //tv.tv_sec = 2; // select function will continue every 2 sec
+  remove("activeplayers.ussv");
   FD_ZERO(&activemaster);
   FD_ZERO(&master);
   FD_ZERO(&read_fds);
@@ -141,6 +142,53 @@ struct usr * searchDB(char *unm, char *pwd)
   return NULL;
 }
 
+int searchSocket(char *unm)
+{
+  int r_file = open("./userdata.ussv", O_RDONLY, 0);
+  int socket = -1;
+  if (r_file == -1)
+  {
+    close(r_file);
+    return NULL;
+  }
+  struct usr * out = (struct usr *)calloc(1, sizeof(struct usr));
+  while (read(r_file, out, sizeof(struct usr)))
+  {
+    if (!strcmp(out->name, unm))
+    {
+      read(r_file, &socket, sizeof(int)+1);
+      close(r_file);
+      return socket;
+    }
+    read(r_file, &socket, sizeof(int)+1);
+  }
+  close(r_file);
+  return -1;
+}
+
+char* searchPlayer(int sock)
+{
+  int r_file = open("./userdata.ussv", O_RDONLY, 0);
+  int socket = -1;
+  if (r_file == -1)
+  {
+    close(r_file);
+    return NULL;
+  }
+  struct usr * out = (struct usr *)calloc(1, sizeof(struct usr));
+  while (read(r_file, out, sizeof(struct usr)))
+  {
+    read(r_file, &socket, sizeof(int)+1);
+    if (sock == socket)
+    {
+      close(r_file);
+      return out->name;
+    }
+  }
+  close(r_file);
+  return NULL;
+}
+
 char* playerList()
 {
   int r_file = open("./userdata.ussv", O_RDONLY, 0);
@@ -226,6 +274,11 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
       }
       else
       {
+        int a_file = open("./activeplayers.ussv", O_WRONLY|O_APPEND|O_CREAT, 0);
+        printf("afile %d\n", a_file);
+        write(a_file, temp, sizeof(struct usr));
+        write(a_file, &s, sizeof(int)+1);
+        close(a_file);
         sendSig = CNFRM;
         send(s, &sendSig, sizeof(int), 0);
         printf("User %s connected\n", temp->name);
@@ -241,7 +294,17 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
     if (cliSig==REQMATCH){
       char opponent[256];
       recv(s, opponent, 256, 0);
-
+      int oppsocket = searchSocket(opponent);
+      if(oppsocket <= 0){
+        sendSig = DENY;
+        send(s, &sendSig, sizeof(int), 0);
+      }
+      else{
+        sendSig = WAITONRESPONSE;
+        send(s, &sendSig, sizeof(int), 0);
+        char out[256];
+        sprintf(out, "Player &s would like to play you in a match", searchUser(s));
+      }
     }
     else if (cliSig==REQRGST)
     {
