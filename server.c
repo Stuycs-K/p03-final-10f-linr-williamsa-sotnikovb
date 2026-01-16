@@ -91,6 +91,33 @@ int main(int argc, char *argv[] ) {
   }
 }
 
+int compareUsrs(struct usr * u1, struct usr * u2)
+{
+  return strcmp(u1->name, u2->name);
+}
+
+struct usr * * getPlayers()
+{
+  int r_file = open("./userdata.ussv", O_RDONLY, 0)
+  if (r_file == -1)
+  {
+    close(r_file);
+    return NULL;
+  }
+  fseek(r_file, 0, SEEK_END);
+  int size = ftell(r_file);
+  size/=sizeof(struct usr);
+  fseek(r_file, 0, SEEK_SET);
+  struct usr * * out = (struct usr * *)calloc(size, sizeof(struct usr));
+  for (int i = 0; i < size; i++)
+  {
+    read(r_file, out[i], sizeof(struct usr));
+    strcpy(out[i]->pwd, "");
+  }
+  qsort(out, size, sizeof(struct usr), compareUsrs);
+  close(r_file);
+  return out;
+}
 
 int appendDB(struct usr * u)
 {
@@ -282,7 +309,7 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
         sendSig = CNFRM;
         send(s, &sendSig, sizeof(int), 0);
         printf("User %s connected\n", temp->name);
-        //send(s, temp, sizeof(struct usr), 0);
+        send(s, temp, sizeof(struct usr), 0);
       }
     }
     if (cliSig==REQPLYRS)
@@ -325,6 +352,21 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
       newAcc->losses = 0;
       appendDB(newAcc);
       free(newAcc);
+    }
+    else if (cliSig==REQLDBRD)
+    {
+      int r_file = open("./userdata.ussv", O_RDONLY, 0)
+      if (r_file == -1)
+      {
+        close(r_file);
+        return NULL;
+      }
+      fseek(r_file, 0, SEEK_END);
+      int size = ftell(r_file);
+      close(r_file);
+
+      send(s, &size, sizeof(int), 0);
+      send(s, getPlayers(), size, 0);
     }
   }
   return NULL; //perhaps bad practice

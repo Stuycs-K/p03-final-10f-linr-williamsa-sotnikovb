@@ -5,9 +5,11 @@
 void clientLogic(int server_socket){
   printf("Welcome to Battleship 3000\n");
   char loggedin = 0;
+  struct usr * self;
+  char buff[256];
+
   while(!loggedin)
   {
-    char buff[256];
     printf("Enter 1 for login. Enter 2 for registration.\n");
     if (fgets(buff, 256, stdin))
     {
@@ -19,6 +21,9 @@ void clientLogic(int server_socket){
         fgets(uname, 256, stdin);
         printf("Please enter a password\n");
         fgets(upwd, 256, stdin);
+        uname[strlen(uname)-1] = NULL;
+        upwd[strlen(upwd)-1] = NULL;
+
         int sendSig = REQRGST;
         send(server_socket, &sendSig, sizeof(int), 0);
         int recSig = -1;
@@ -53,7 +58,8 @@ void clientLogic(int server_socket){
           recv(server_socket, &recSig, sizeof(int), 0);
           if (recSig==CNFRM)
           {
-            printf("Welcome, %s \n", uname);
+            printf("Welcome, %s.\n", uname);
+            recv(server_socket, self, sizeof(struct usr), 0);
             loggedin = 1;
           }
           else if (recSig==DENY)
@@ -119,6 +125,27 @@ void clientLogic(int server_socket){
       }
     }
     read_fds = master;
+    while(1)
+    {
+      printf("%s\nWins: %d\nLosses: %d\n", self->name, self->wins, self->losses);
+      printf("1. View available players\n2. Connect to player\n3. View leaderboard\n4. Exit");
+      fgets(buff, 256, stdin);
+      if (!strcmp(buff, "4\n")) exit(0);
+      else if (!strcmp(buff, "3\n"))
+      {
+        int sendSig = REQLDBRD;
+        send(server_socket, &sendSig, sizeof(int), 0);
+
+        int size = 0;
+        recv(server_socket, &size, sizeof(int));
+        struct usr * * players = (struct usr **)calloc(size, 1);
+        recv(server_socket, players, size);
+        printf("LEADERBOARD:\n\n");
+        for (size_t i = 0; i < size/sizeof(struct usr); i++)
+        {
+          printf("%d. %256s - %2d wins - %2d losses", i+1, players[i]->name, players[i]->wins, players[i]->losses);
+        }
+      }
   }
 }
 
