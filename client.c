@@ -74,6 +74,8 @@ void clientLogic(int server_socket){
       }
     }
   }
+  printf("%s\nWins: %d\nLosses: %d\n", self->name, self->wins, self->losses);
+  printf("1. View available players\n2. Connect to player\n3. View leaderboard\n4. Exit\n");
   fd_set master;
   fd_set read_fds;
   int fdmax;
@@ -84,8 +86,6 @@ void clientLogic(int server_socket){
   fdmax = server_socket;
   read_fds = master;
   while(loggedin){
-    printf("%s\nWins: %d\nLosses: %d\n", self->name, self->wins, self->losses);
-    printf("1. View available players\n2. Connect to player\n3. View leaderboard\n4. Exit");
     char buf[5000];
     if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
       perror("select");
