@@ -27,11 +27,15 @@ int main(int argc, char *argv[] ) {
   int fdmax;        // maximum file descriptor number
   //struct timeval tv;
   //tv.tv_sec = 2; // select function will continue every 2 sec
-
+  remove("activeplayers.ussv");
+  FD_ZERO(&activemaster);
   FD_ZERO(&master);
   FD_ZERO(&read_fds);
   int listen_socket = server_setup();
-  struct board * boardarray[MAX_NUMBOARDS]; // may need to make sure this is null? and initialize?
+  struct match * matcharray[MAX_NUMMATCHES]; // may need to make sure this is null? and initialize?
+  for (int m = 0; m < MAX_NUMMATCHES; m++) {
+    matcharray[m] = calloc(1, sizeof *matcharray[m]);
+}
   //add listen_socket to the set
   FD_SET(listen_socket, &master);
   fdmax = listen_socket;
@@ -41,14 +45,22 @@ int main(int argc, char *argv[] ) {
     struct board * newboard = NULL;
     if(select(fdmax+1,&read_fds, NULL, NULL, NULL) == -1){
       perror("select");
-      exit(16);
+      exit(0);
     }
     for(int i = 0; i <= fdmax; i++){
       if(FD_ISSET(i, &read_fds)) {
-        if(i == listen_socket)
-          handle_new_connection(i, &master, &fdmax);
-        else
-          newboard = handle_client_data(i, listen_socket, &master, &fdmax);
+        printf("%d is set\n", i);
+        if(i == listen_socket){
+          handle_new_connection(i, &activemaster, &fdmax);
+          master = activemaster;
+        }
+        else{
+          newmatch = handle_client_data(i, listen_socket, &activemaster, &fdmax);
+          if(newmatch != NULL){
+            FD_CLR(newmatch->socket1, &activemaster);
+            FD_CLR(newmatch->socket2, &activemaster);
+          }
+        }
       }
     }
     if(newboard != NULL){
@@ -59,14 +71,56 @@ int main(int argc, char *argv[] ) {
         }
       }
     }
-    for(int k = 0; k < MAX_NUMBOARDS; k++){
-      retval = 0;
-      waitpid(boardarray[j]->pid, &retval, WNOHANG);
-      if(retval != 0){
-        // code tba?
+    for(int k = 0; k < MAX_NUMMATCHES; k++){
+      if(matcharray[k] != NULL){
+        retval = 0; // retval should give either the winner's socket or if one exited - but how would it tell which one?
+        int matchpid = 0;
+        matchpid = waitpid(matcharray[k]->pid, &retval, WNOHANG);
+        //needs to unblock from sockets - may need to for loop?
+        if(retval != 0){
+          for(int l = 0; l < MAX_NUMMATCHES; l++){
+            if(matchpid == matcharray[l]->pid){
+              FD_SET(matcharray[l]->socket1, &activemaster);
+              FD_SET(matcharray[l]->socket2, &activemaster);
+            }
+          }
+        // code tba - the matcharray should be updated - removing this index
+        // the leaderboard should be updated
+        }
+        matcharray[k] = NULL;
       }
     }
   }
+}
+
+int compareUsrs(const void * u1, const void * u2)
+{
+  return strcmp(((const struct usr *)u1)->name, ((const struct usr *)u2)->name);
+}
+
+struct usr * * getPlayers()
+{
+  int r_file = open("./userdata.ussv", O_RDONLY, 0);
+  if (r_file == -1)
+  {
+    close(r_file);
+    return NULL;
+  }
+
+  FILE* fp = fopen("./userdata.ussv", "r");
+  fseek(fp, 0, SEEK_END);
+  int size = ftell(fp);
+  size/=sizeof(struct usr);
+  fseek(fp, 0, SEEK_SET);
+  struct usr * * out = (struct usr * *)calloc(size, sizeof(struct usr));
+  for (int i = 0; i < size; i++)
+  {
+    read(r_file, out[i], sizeof(struct usr));
+    strcpy(out[i]->pwd, "");
+  }
+  qsort(out, size, sizeof(struct usr), compareUsrs);
+  close(r_file);
+  return out;
 }
 
 int appendDB(struct usr * u)
@@ -75,7 +129,8 @@ int appendDB(struct usr * u)
   if (!temp)
   {
     int w_file = open("./userdata.ussv", O_WRONLY|O_APPEND, 0);
-    write(w_file, u, sizeof(u));
+    write(w_file, u, sizeof(struct usr));
+    close(w_file);
   }
   free(temp);
   return -1;
@@ -90,9 +145,9 @@ void handle_new_connection(int listener, fd_set *master, int *fdmax){
     FD_SET(newfd, master); // add to master set
     if (newfd > *fdmax) {  // keep track of the max
     *fdmax = newfd;
+    printf("socket on %d connected to server", newfd);
     }
   }
-  printf("server connected\n");
 }
 
 
@@ -117,8 +172,78 @@ struct usr * searchDB(char *unm, char *pwd)
   return NULL;
 }
 
-struct * board handle_client_data(int s, int listener, fd_set *master, int *fdmax){
-  char buf[256];    // buffer for client data
+int searchSocket(char *unm)
+{
+  int r_file = open("./userdata.ussv", O_RDONLY, 0);
+  int socket = -1;
+  if (r_file == -1)
+  {
+    close(r_file);
+    return -1;
+  }
+  struct usr * out = (struct usr *)calloc(1, sizeof(struct usr));
+  while (read(r_file, out, sizeof(struct usr)))
+  {
+    if (!strcmp(out->name, unm))
+    {
+      read(r_file, &socket, sizeof(int)+1);
+      close(r_file);
+      return socket;
+    }
+    read(r_file, &socket, sizeof(int)+1);
+  }
+  close(r_file);
+  return -1;
+}
+
+char* searchPlayer(int sock)
+{
+  int r_file = open("./userdata.ussv", O_RDONLY, 0);
+  int socket = -1;
+  if (r_file == -1)
+  {
+    close(r_file);
+    return NULL;
+  }
+  struct usr * out = (struct usr *)calloc(1, sizeof(struct usr));
+  while (read(r_file, out, sizeof(struct usr)))
+  {
+    read(r_file, &socket, sizeof(int)+1);
+    if (sock == socket)
+    {
+      close(r_file);
+      return out->name;
+    }
+  }
+  close(r_file);
+  return NULL;
+}
+
+char* playerList()
+{
+  int r_file = open("./userdata.ussv", O_RDONLY, 0);
+  if (r_file == -1)
+  {
+    close(r_file);
+    return NULL;
+  }
+  struct usr * out = (struct usr *)calloc(1, sizeof(struct usr));
+  char *str = malloc(5000);
+  str[0] = '\0';
+  int len = 0;
+  while(read(r_file, out, sizeof(struct usr))){
+    int wlen = strlen(out->name);
+    memcpy(str+len, out->name, wlen+1);
+    len += wlen;
+  }
+  printf("%s\n", str);
+  close(r_file);
+  return str;
+}
+
+
+//does listener do anything?
+struct match * handle_client_data(int s, int listener, fd_set *master, int *fdmax){
   int cliSig = -1;
   int nbytes;
   // handle data from a client
@@ -152,7 +277,7 @@ struct * board handle_client_data(int s, int listener, fd_set *master, int *fdma
       send(s, &sendSig, sizeof(int), 0);
       char unamebuff[256];
       char upwdbuff[256];
-      recv(s, unamebuff, 256, 0);       //await username and pwd input
+      recv(s, unamebuff, 256, 0);       //await username and pwd input - note is blocking?
       recv(s, upwdbuff, 256, 0);
       struct usr * temp = searchDB(unamebuff, upwdbuff);
       if (!temp)
@@ -162,10 +287,53 @@ struct * board handle_client_data(int s, int listener, fd_set *master, int *fdma
       }
       else
       {
+        int a_file = open("./activeplayers.ussv", O_WRONLY|O_APPEND|O_CREAT, 0);
+        printf("afile %d\n", a_file);
+        write(a_file, temp, sizeof(struct usr));
+        write(a_file, &s, sizeof(int)+1);
+        close(a_file);
         sendSig = CNFRM;
         send(s, &sendSig, sizeof(int), 0);
+        printf("User %s connected\n", temp->name);
         send(s, temp, sizeof(struct usr), 0);
       }
+    }
+    if (cliSig==REQPLYRS)
+    {
+      char* ret = playerList();
+      send(s, ret, sizeof(ret), 0);
+
+    }
+    if (cliSig==REQMATCH){
+      char opponent[256];
+      recv(s, opponent, 256, 0);
+      int oppsocket = searchSocket(opponent);
+      if(oppsocket <= 0){
+        int sendSig = DENY;
+        send(s, &sendSig, sizeof(int), 0);
+      }
+      else{
+        int sendSig = WAITONRESPONSE;
+        send(s, &sendSig, sizeof(int), 0);
+        char out[5000];
+        sprintf(out, "Player %s would like to play you in a match", searchPlayer(s));
+        int oppSig = REQMATCH;
+        send(oppsocket, &oppSig, sizeof(oppSig), 0);
+        send(oppsocket, searchPlayer(s), sizeof(searchPlayer(s)), 0);
+      }
+    }
+    if(cliSig==ACCMATCH){
+      char opponent[256];
+      recv(s, opponent, 256, 0);
+      int oppsocket = searchSocket(opponent);
+      matchlogic(s, oppsocket);
+    }
+    if(cliSig==DENYMATCH){
+      char opponent[256];
+      recv(s, opponent, 256, 0);
+      int oppsocket = searchSocket(opponent);
+      int oppSig = DENYMATCH;
+      send(oppsocket, &oppSig, sizeof(oppSig), 0);
     }
     else if (cliSig==REQRGST)
     {
@@ -180,6 +348,15 @@ struct * board handle_client_data(int s, int listener, fd_set *master, int *fdma
       newAcc->pwd = upwdbuff;
       appendDB(newAcc);
       free(newAcc);
+    }
+    else if (cliSig==REQLDBRD)
+    {
+      FILE* fp = fopen("./userdata.ussv", "r");
+      fseek(fp, 0, SEEK_END);
+      int size = ftell(fp);
+
+      send(s, &size, sizeof(int), 0);
+      send(s, getPlayers(), size, 0);
     }
   }
 }
@@ -305,7 +482,7 @@ struct * board matchlogic(int socket1, int socket2){
 
 
 
-/*straight BEEJ's code for converting a socket into an IP address string
+/*straight BEEJ's code for converting a socket into an IP address striprintfng
 //this is just - for the moment at least - for being able to bug test and tell who's who
 const char *inet_ntop2(void *addr, char *buf, size_t size){
   struct sockaddr_storage *sas = addr;

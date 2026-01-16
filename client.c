@@ -107,6 +107,7 @@ void printBoard(int myBoard[3][3], int oppBoard[3][3], int x, int y){
 }
 
 void clientGameLogic(int server_socket){
+  //init starts here ======================================
   char buffer[256];
   int x;
   int y;
