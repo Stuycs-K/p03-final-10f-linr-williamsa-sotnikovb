@@ -462,12 +462,12 @@ struct * board matchlogic(int socket1, int socket2){
     }
 
 
-    bytes = write(socket1, board, sizeof(board));
+    bytes = write(socket1, board1, sizeof(board1));
     if (bytes == -1){
       err(server_socket, "read failed");
     }
     // Board two calc Here
-    bytes = write(socket2, board, sizeof(board));
+    bytes = write(socket2, board2, sizeof(board2));
     if (bytes == -1){
       err(server_socket, "read failed");
     }
