@@ -207,7 +207,20 @@ struct * board matchlogic(int socket1, int socket2){
       }
     }
     if (count == 3){
-      printf("")
+      printf("Board 1 won the game\n");
+      exit(1);
+    }
+    count = 0;
+    for (int i = 0; i < 3; i++){
+      for (int e = 0; e < 3; e++){
+        if (board[1][i][e] == 2){
+          count++;
+        }
+      }
+    }
+    if (count == 3){
+      printf("Board 2 won the game\n");
+      exit(1);
     }
     int bytes = read(socket1, buffer, sizeof(buffer));
     if (bytes == -1){
