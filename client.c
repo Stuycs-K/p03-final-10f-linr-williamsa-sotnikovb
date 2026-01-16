@@ -69,7 +69,7 @@ void clientLogic(int server_socket){
     }
   }
   while(loggedin){
-    printf("Enter 1 to see who's online.\n");
+    printf("Enter 1 to see who's online, or 2 to begin a game request\n");
     char buf[5000];
     fgets(buf, 5000, stdin);
     if(!strcmp(buf, "1\n")){
@@ -78,6 +78,18 @@ void clientLogic(int server_socket){
       recv(server_socket, buf, sizeof(buf), 0);
       printf("players online:");
       printf("%s",buf);
+    }
+    if(!strcmp(buf, "2\n")){
+      int sendSig = REQMATCH;
+      send(server_socket, &sendSig, sizeof(int), 0);
+      int response = 0;
+      recv(server_socket, &response, sizeof(buf), 0);
+      if(response == 1){
+        
+      }
+      else{
+        printf("request denied :( \n");
+      }
     }
   }
 

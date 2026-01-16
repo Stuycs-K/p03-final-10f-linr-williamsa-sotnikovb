@@ -98,6 +98,7 @@ int appendDB(struct usr * u)
   {
     int w_file = open("./userdata.ussv", O_WRONLY|O_APPEND, 0);
     write(w_file, u, sizeof(struct usr));
+    close(w_file);
   }
   else free(temp);
   return -1;
@@ -215,7 +216,7 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
       send(s, &sendSig, sizeof(int), 0);
       char unamebuff[256];
       char upwdbuff[256];
-      recv(s, unamebuff, 256, 0);       //await username and pwd input
+      recv(s, unamebuff, 256, 0);       //await username and pwd input - note is blocking?
       recv(s, upwdbuff, 256, 0);
       struct usr * temp = searchDB(unamebuff, upwdbuff);
       if (!temp)
@@ -237,7 +238,11 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
       send(s, ret, sizeof(ret), 0);
 
     }
+    if (cliSig==REQMATCH){
+      char opponent[256];
+      recv(s, opponent, 256, 0);
 
+    }
     else if (cliSig==REQRGST)
     {
       int sendSig = ACCRGST;
