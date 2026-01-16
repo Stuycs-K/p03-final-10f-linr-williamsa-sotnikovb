@@ -199,14 +199,14 @@ void printBoard(int myBoard[3][3], int oppBoard[3][3], int x, int y){
   for(int i = 0; i < 3; i++){
     for (int b = 0; b < 4; b++){
       if (b == 0){
-        printf("%d ", b);
+        printf("%d ", i);
       }
       else{
         if (oppBoard[i][b-1] == -1 || oppBoard[i][b-1] == 2){
           printf("%d ", oppBoard[i][b - 1]);
         }
         else{
-        printf("%s ", "*");
+        printf("* ");
       }
     }
     }
