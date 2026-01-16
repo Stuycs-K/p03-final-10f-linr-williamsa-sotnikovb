@@ -52,7 +52,6 @@ int main(int argc, char *argv[] ) {
           master = activemaster;
         }
         else{
-          printf("3\n");
           newmatch = handle_client_data(i, listen_socket, &activemaster, &fdmax);
           if(newmatch != NULL){
             FD_CLR(newmatch->socket1, &activemaster);
@@ -70,24 +69,23 @@ int main(int argc, char *argv[] ) {
       }
     }
     for(int k = 0; k < MAX_NUMMATCHES; k++){
-      if(matcharray[k]->pid != 0){
-        printf("%d\n", matcharray[k]->pid);
-      retval = 0; // retval should give either the winner's socket or if one exited - but how would it tell which one?
-      int matchpid = 0;
-      matchpid = waitpid(matcharray[k]->pid, &retval, WNOHANG);
-      //needs to unblock from sockets - may need to for loop?
-      if(retval != 0){
-        for(int l = 0; l < MAX_NUMMATCHES; l++){
-          if(matchpid == matcharray[l]->pid){
-            FD_SET(matcharray[l]->socket1, &activemaster);
-            FD_SET(matcharray[l]->socket2, &activemaster);
+      if(matcharray[k] != NULL){
+        retval = 0; // retval should give either the winner's socket or if one exited - but how would it tell which one?
+        int matchpid = 0;
+        matchpid = waitpid(matcharray[k]->pid, &retval, WNOHANG);
+        //needs to unblock from sockets - may need to for loop?
+        if(retval != 0){
+          for(int l = 0; l < MAX_NUMMATCHES; l++){
+            if(matchpid == matcharray[l]->pid){
+              FD_SET(matcharray[l]->socket1, &activemaster);
+              FD_SET(matcharray[l]->socket2, &activemaster);
+            }
           }
-        }
         // code tba - the matcharray should be updated - removing this index
         // the leaderboard should be updated
+        }
+        matcharray[k] = NULL;
       }
-      matcharray[k] = NULL;
-    }
     }
   }
 }
@@ -115,9 +113,9 @@ void handle_new_connection(int listener, fd_set *master, int *fdmax){
     FD_SET(newfd, master); // add to master set
     if (newfd > *fdmax) {  // keep track of the max
     *fdmax = newfd;
+    printf("socket on %d connected to server", newfd);
     }
   }
-  printf("server connected\n");
 }
 
 
@@ -141,6 +139,29 @@ struct usr * searchDB(char *unm, char *pwd)
   close(r_file);
   return NULL;
 }
+
+char* playerList()
+{
+  int r_file = open("./userdata.ussv", O_RDONLY, 0);
+  if (r_file == -1)
+  {
+    close(r_file);
+    return NULL;
+  }
+  struct usr * out = (struct usr *)calloc(1, sizeof(struct usr));
+  char *str = malloc(5000);
+  str[0] = '\0';
+  int len = 0;
+  while(read(r_file, out, sizeof(struct usr))){
+    int wlen = strlen(out->name);
+    memcpy(str+len, out->name, wlen+1);
+    len += wlen;
+  }
+  printf("%s\n", str);
+  close(r_file);
+  return str;
+}
+
 
 //does listener do anything?
 struct match * handle_client_data(int s, int listener, fd_set *master, int *fdmax){
@@ -210,6 +231,13 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
         //send(s, temp, sizeof(struct usr), 0);
       }
     }
+    if (cliSig==REQPLYRS)
+    {
+      char* ret = playerList();
+      send(s, ret, sizeof(ret), 0);
+
+    }
+
     else if (cliSig==REQRGST)
     {
       int sendSig = ACCRGST;

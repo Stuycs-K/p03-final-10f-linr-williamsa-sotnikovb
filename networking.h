@@ -31,6 +31,7 @@ struct match
     int socket1;
     int socket2;
 };
+char* playerList();
 int server_setup();
 int client_tcp_handshake(char*server_address);
 int socket(int domain, int type, int protocol);

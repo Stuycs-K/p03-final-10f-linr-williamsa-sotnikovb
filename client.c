@@ -53,7 +53,7 @@ void clientLogic(int server_socket){
           recv(server_socket, &recSig, sizeof(int), 0);
           if (recSig==CNFRM)
           {
-            printf("Welcome, %s.\n", uname);
+            printf("Welcome, %s \n", uname);
             loggedin = 1;
           }
           else if (recSig==DENY)
@@ -66,6 +66,18 @@ void clientLogic(int server_socket){
           printf("Server denied\n");
         }
       }
+    }
+  }
+  while(loggedin){
+    printf("Enter 1 to see who's online.\n");
+    char buf[5000];
+    fgets(buf, 5000, stdin);
+    if(!strcmp(buf, "1\n")){
+      int sendSig = REQPLYRS;
+      send(server_socket, &sendSig, sizeof(int), 0);
+      recv(server_socket, buf, sizeof(buf), 0);
+      printf("players online:");
+      printf("%s",buf);
     }
   }
 
