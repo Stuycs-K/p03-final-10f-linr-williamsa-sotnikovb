@@ -191,9 +191,27 @@ struct * board matchlogic(int socket1, int socket2){
     newboard->pid = getpid();
     newboard->socket1 = socket1;
     newboard->socket2 = socket2;
-    int board1[2][3][3]; // index 0 of first array is personal, 1 is opp
-    int board2[2][3][3];
+    // index 0 of first array is personal, 1 is opp
+    int board1[2][3][3] = {0};
+    int board2[2][3][3] = {0};
+    // on the board: 0 is blank, 1 is ur own ship, 2 is the ship got hit, -1 is someone guessed and miss
     // here add the initialization of the board and where the client want their ships to be. 3 Boats.
+    for (int j = 0; j < 3; j++){
+    bytes = read(socket1, buffer, sizeof(buffer));
+    if (bytes == -1){
+      err(server_socket, "read failed");
+    }
+    sscanf(buffer, "%d %d", &x, &y);
+    board1[0][x][y] = 1;
+  }
+  for (int j = 0; j < 3; j++){
+  bytes = read(socket2, buffer, sizeof(buffer));
+  if (bytes == -1){
+    err(server_socket, "read failed");
+  }
+  sscanf(buffer, "%d %d", &x, &y);
+  board2[0][x][y] = 1;
+}
     char buffer[256];
     while(1){ // loop of gameplay starts here
     // check for end of game here
@@ -201,7 +219,7 @@ struct * board matchlogic(int socket1, int socket2){
     int count = 0;
     for (int i = 0; i < 3; i++){
       for (int e = 0; e < 3; e++){
-        if (board[0][i][e] == 2){
+        if (board1[0][i][e] == 2){
           count++;
         }
       }
@@ -213,7 +231,7 @@ struct * board matchlogic(int socket1, int socket2){
     count = 0;
     for (int i = 0; i < 3; i++){
       for (int e = 0; e < 3; e++){
-        if (board[1][i][e] == 2){
+        if (board2[0][i][e] == 2){
           count++;
         }
       }

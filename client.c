@@ -132,17 +132,17 @@ void clientGameLogic(int server_socket){
   if (bytes == -1){
     err(server_socket, "write failed");
   }
-  printf("Welcome to the game player.\n");
   printf("Insert the coordinates you wish to place boat 3 in x y form: ");
    s = fgets(buffer, sizeof(buffer), stdin);
   if (s == NULL){
     printf("Client exits because of CTRL-D\n");
     exit(1);
   }
-bytes = write(server_socket, buffer, 256);
+  bytes = write(server_socket, buffer, 256);
   if (bytes == -1){
     err(server_socket, "write failed");
   }
+  //init ends here ======================================
   while (1){
   printf("Insert the coordinates you wish to check in x y form: ");
    s = fgets(buffer, sizeof(buffer), stdin);
