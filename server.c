@@ -98,7 +98,7 @@ int compareUsrs(struct usr * u1, struct usr * u2)
 
 struct usr * * getPlayers()
 {
-  int r_file = open("./userdata.ussv", O_RDONLY, 0)
+  int r_file = open("./userdata.ussv", O_RDONLY, 0);
   if (r_file == -1)
   {
     close(r_file);
@@ -336,7 +336,19 @@ struct match * handle_client_data(int s, int listener, fd_set *master, int *fdma
         send(oppsocket, searchPlayer(s), sizeof(searchPlayer(s)), 0);
       }
     }
-    if(cliSig,)
+    if(cliSig==ACCMATCH){
+      char opponent[256];
+      recv(s, opponent, 256, 0);
+      int oppsocket = searchSocket(opponent);
+      matchlogic(s, opponent);
+    }
+    if(cliSig==DENYMATCH){
+      char opponent[256];
+      recv(s, opponent, 256, 0);
+      int oppsocket = searchSocket(opponent);
+      int oppSig = DENYMATCH;
+      send(oppsocket, &oppSig, sizeof(oppSig), 0);
+    }
     else if (cliSig==REQRGST)
     {
       int sendSig = ACCRGST;

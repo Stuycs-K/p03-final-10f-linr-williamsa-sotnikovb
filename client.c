@@ -79,9 +79,9 @@ void clientLogic(int server_socket){
   int fdmax;
   FD_ZERO(&master);
   FD_ZERO(&read_fds);
-  FD_SET(listen_socket, &master);
+  FD_SET(server_socket, &master);
   FD_SET(STDIN, &master);
-  fdmax = listen_socket;
+  fdmax = server_socket;
   read_fds = master;
   while(loggedin){
     printf("%s\nWins: %d\nLosses: %d\n", self->name, self->wins, self->losses);
@@ -136,8 +136,27 @@ void clientLogic(int server_socket){
           }
         }
         if(i == LISTEN_SOCKET){
-          recv(listen_socket, buf, sizeof(buf), 0);
-          printf("%s\n", buf);
+          int serverSig = 0;
+          recv(server_socket, serverSig, sizeof(int), 0);
+          recv(server_socket, buf, sizeof(buf), 0);
+          printf("b");
+          if(serverSig == REQMATCH){
+            char buf2[256]
+            printf("%s would like to play a match with you. Press 1 to accept, 2 to deny\n", buf);
+            fgets(buf2, sizeof(buf2), stdin);
+            if(!strcmp(buf, "1\n")){
+              int cliSig = ACCMATCH;
+              send(server_socket, &cliSig, sizeof(int), 0);
+              send(server_socket, buf, sizeof(buf), 0);
+          }
+            if(!strcmp(buf, "2\n")){
+              int cliSig = DENYMATCH;
+              send(server_socket, &cliSig, sizeof(int), 0);
+              send(server_socket, buf, sizeof(buf), 0);
+            }
+        }
+        if(serverSig == DENYMATCH){
+          printf("request to match was denied");
         }
       }
     }

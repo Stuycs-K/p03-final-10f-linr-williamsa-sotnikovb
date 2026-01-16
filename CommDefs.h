@@ -12,5 +12,4 @@
 #define ACCMATCH 109
 #define DENYMATCH 110
 #define WAITONRESPONSE 111
-#define JOINLOBBY 112
 #endif
